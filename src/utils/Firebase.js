@@ -18,14 +18,14 @@ const FirebaseData = () => {
   const measurementIdData = websettingsdata && websettingsdata?.firebase_measurement_id;
 
   let firebaseConfig = {
-      apiKey: apiKeyData ? apiKeyData : "xxxxxx",
-      authDomain: authDomainData ? authDomainData : "xxxxx",
+      apiKey: apiKeyData ? apiKeyData : "AIzaSyCx_9J_-fSUmsDsLVt5GuiP1ivHBb2lxog",
+      authDomain: authDomainData ? authDomainData : "freemcqquiz.firebaseapp.com",
       databaseURL: databaseURLData ? databaseURLData : "xxxxx",
-      projectId: projectIdData ? projectIdData : "xxxxx",
-      storageBucket: storageBucketData ? storageBucketData : "xxxxx",
-      messagingSenderId: messagingSenderIdData ? messagingSenderIdData : "xxxxx",
-      appId: appIdData ? appIdData : "xxxxx",
-      measurementId: measurementIdData ? measurementIdData : "xxxxx",
+      projectId: projectIdData ? projectIdData : "freemcqquiz",
+      storageBucket: storageBucketData ? storageBucketData : "freemcqquiz.appspot.com",
+      messagingSenderId: messagingSenderIdData ? messagingSenderIdData : "372341214414",
+      appId: appIdData ? appIdData : "1:372341214414:web:aae523732d38408333149f",
+      measurementId: measurementIdData ? measurementIdData : "G-BT4PQPTF4Y",
   }
 
   // eslint-disable-next-line
