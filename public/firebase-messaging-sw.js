@@ -4,13 +4,13 @@ importScripts('https://www.gstatic.com/firebasejs/8.8.0/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/8.8.0/firebase-messaging.js');
 
 const firebaseConfig = {
-  apiKey: 'xxxxxxx',
-  authDomain: 'xxxxxxx',
-  projectId: 'xxxxxxx',
-  storageBucket: 'xxxxxxx',
-  messagingSenderId: 'xxxxxxx',
-  appId: 'xxxxxxx',
-  measurementId: 'xxxxxxx',
+  apiKey: "AIzaSyCx_9J_-fSUmsDsLVt5GuiP1ivHBb2lxog",
+  authDomain: "freemcqquiz.firebaseapp.com",
+  projectId: "freemcqquiz",
+  storageBucket: "freemcqquiz.appspot.com",
+  messagingSenderId: "372341214414",
+  appId: "1:372341214414:web:aae523732d38408333149f",
+  measurementId: "G-BT4PQPTF4Y",
 };
 
 // eslint-disable-next-line no-undef
