@@ -33,6 +33,7 @@ const Meta = ({ title, description, keywords, ogImage, pathName, schema }) => {
                 type='application/ld+json'
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(schema ? schema : null) }}
             />
+          <meta name="google-site-verification" content="-JWN7esATTWTq7spb4u5KeGvgn2VYKnorIGJczGbXdI" />
         </Head>
     )
 }
