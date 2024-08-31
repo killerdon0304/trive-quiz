@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { withTranslation } from 'react-i18next'
 import 'react-circular-progressbar/dist/styles.css'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { battleDataClear, groupbattledata } from 'src/store/reducers/groupbattleSlice'
 import { imgError } from 'src/utils'
 import { UserCoinScoreApi, getusercoinsApi, setBadgesApi, setbattlestaticticsApi } from 'src/store/actions/campaign'
@@ -15,12 +15,8 @@ import vsImg from '../../../assets/images/versus.svg'
 import showScoreVsImg from '../../../assets/images/versus.svg'
 import rightTickIcon from '../../../assets/images/check-circle-score-screen.svg'
 import crossIcon from '../../../assets/images/x-circle-score-screen.svg'
-import AnimatedProgressProvider from 'src/utils/AnimatedProgressProvider'
-import { easeQuadInOut } from 'd3-ease'
-import { CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
-import { systemconfigApi } from 'src/store/reducers/settingsSlice'
 import winnerBadge from '../../../assets/images/won bedge.svg'
-
+import userImg from '../../../assets/images/user.svg'
 
 const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswer, goBack }) => {
 
@@ -40,6 +36,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
 
   const groupBattledata = useSelector(groupbattledata)
 
+  const dispatch = useDispatch()
 
   const badgesdata = useSelector(badgesData)
 
@@ -97,26 +94,24 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
             LoadNewBadgesData('quiz_warrior', '1')
             toast.success(t(res?.data?.notification_body))
             const status = 0
-            UserCoinScoreApi(
-              quiz_warrior_coin,
-              null,
-              null,
-              t('quiz warrior badge reward'),
-              status,
-              response => {
-                getusercoinsApi(
-                  responseData => {
+            UserCoinScoreApi({
+              coins: quiz_warrior_coin,
+              title: t('quiz_warrior_badge_reward'),
+              status: status,
+              onSuccess: response => {
+                getusercoinsApi({
+                  onSuccess: responseData => {
                     updateUserDataInfo(responseData.data)
                   },
-                  error => {
+                  onError: error => {
                     console.log(error)
                   }
-                )
+                })
               },
-              error => {
+              onError: error => {
                 console.log(error)
               }
-            )
+            })
           },
           error => {
             console.log(error)
@@ -132,26 +127,24 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
             LoadNewBadgesData('quiz_warrior', '1')
             toast.success(t(res?.data?.notification_body))
             const status = 0
-            UserCoinScoreApi(
-              quiz_warrior_coin,
-              null,
-              null,
-              t('quiz warrior badge reward'),
-              status,
-              response => {
-                getusercoinsApi(
-                  responseData => {
+            UserCoinScoreApi({
+              coins: quiz_warrior_coin,
+              title: t('quiz_warrior_badge_reward'),
+              status: status,
+              onSuccess: response => {
+                getusercoinsApi({
+                  onSuccess: responseData => {
                     updateUserDataInfo(responseData.data)
                   },
-                  error => {
+                  onError: error => {
                     console.log(error)
                   }
-                )
+                })
               },
-              error => {
+              onError: error => {
                 console.log(error)
               }
-            )
+            })
           },
           error => {
             console.log(error)
@@ -171,7 +164,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
   useEffect(() => {
     let compareBattledata = comparePointsAndRetrieveUserIDs()
     let user2uidData = user2IdGet()
-    setbattlestaticticsApi(userData?.data?.id, user2uidData, compareBattledata, compareBattledata ? 0 : 1)
+    setbattlestaticticsApi({ user_id1: userData?.data?.id, user_id2: user2uidData, winner_id: compareBattledata, is_drawn: compareBattledata ? 0 : 1 })
   }, [])
 
   const alluseranswer = [user1point, user2point]
@@ -201,28 +194,28 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
     if (!groupBattledata.showScore && usersWithMax.includes(userData?.data?.id) && entryFee > 0) {
       // Winner logic
       const status = 0
-      UserCoinScoreApi(
-        Math.floor(winAmount),
-        null,
-        null,
-        t('Won Battle'),
-        status,
-        response => {
-          getusercoinsApi(
-            responseData => {
+      UserCoinScoreApi({
+        coins: Math.floor(winAmount),
+        title: t('won_battle'),
+        status: status,
+        onSuccess: response => {
+          getusercoinsApi({
+            onSuccess: responseData => {
               updateUserDataInfo(responseData.data)
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
-        error => {
+        onError: error => {
           console.log(error)
         }
-      )
+      })
     }
   }, [])
+
+
 
   return (
     <React.Fragment>
@@ -233,7 +226,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
               <>
                 <div className='result_data'>
                   <p>{t('Victory')}</p>
-                  <h3>{t('Congratulations')}</h3>
+                  <h3>{t('congrats')}</h3>
                   {entryFee > 0 && user2uid !== "000" ?
                     <div className="wonCoin">
                       <span>{t(`You Won ${winAmount} Coins`)}</span>
@@ -245,11 +238,13 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
           } else if (userData?.data?.id == user1uid && user1point < user2point) {
             return (
               <div className='result_data'>
-                <p>{t('Defeat')}</p>
-                <h3>{t('Better Luck Next Time')}</h3>
+                <p>{t('defeat')}</p>
+                <h3>{t('better_luck_next_time')}</h3>
                 {entryFee > 0 && user2uid !== "000" ?
                   <div className="wonCoin loseCoin">
-                    <span>{t(`You Lose ${entryFee} Coins`)}</span>
+                    <span>
+                      {t('you_lose')}&nbsp;{entryFee}&nbsp;{t('coins')}
+                    </span> 
                   </div>
                   : null}
 
@@ -258,12 +253,14 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
           } else if (userData?.data?.id == user2uid && user1point > user2point) {
             return (
               <div className='result_data'>
-                <p>{t('Defeat')}</p>
-                <h3>{t('Better Luck Next Time')}</h3>
+                <p>{t('defeat')}</p>
+                <h3>{t('better_luck_next_time')}</h3>
 
                 {entryFee > 0 && user2uid !== "000" ?
                   <div className="wonCoin loseCoin">
-                    <span>{t(`You Lose ${entryFee} Coins`)}</span>
+                    <span>
+                      {t('you_lose')}&nbsp;{entryFee}&nbsp;{t('coins')}
+                    </span> 
                   </div>
                   : null}
               </div>
@@ -272,7 +269,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
             return (
               <div className='result_data'>
                 <p>{t('Victory')}</p>
-                <h3>{t('Congratulations')}</h3>
+                <h3>{t('congrats')}</h3>
                 {entryFee > 0 && user2uid !== "000" ?
                   <div className="wonCoin">
                     <span>{t(`You Won ${winAmount} Coins`)}</span>
@@ -284,7 +281,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
           } else if (user1point == user2point) {
             return (
               <div className='result_data'>
-                <h3>{t('Tie')}</h3>
+                <h3>{t('tie')}</h3>
               </div>
             )
           }
@@ -297,7 +294,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                 <div className='login_winner'>
                   <div className="profileWrapper">
                     <img
-                      src={user1image ? user1image : '/images/user.svg'}
+                      src={user1image ? user1image : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -328,7 +325,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                   <div className="profileWrapper">
 
                     <img
-                      src={user2image ? user2image : '/images/user.svg'}
+                      src={user2image ? user2image : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -346,7 +343,6 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                     <span className='wrongAns'>
                       <img src={crossIcon.src} alt="" />{totalQuestions - user2CorrectAnswer}</span>
                   </div>
-
                   <p> {t("Score")}: {user2point}</p>
 
 
@@ -362,7 +358,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                   <div className="profileWrapper">
 
                     <img
-                      src={user2image ? user2image : '/images/user.svg'}
+                      src={user2image ? user2image : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -395,7 +391,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                   <div className="profileWrapper">
 
                     <img
-                      src={user1image ? user1image : '/images/user.svg'}
+                      src={user1image ? user1image : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -426,7 +422,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                   <div className="profileWrapper">
 
                     <img
-                      src={user1image ? user1image : '/images/user.svg'}
+                      src={user1image ? user1image : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -459,7 +455,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
                   <div className="profileWrapper">
 
                     <img
-                      src={user2image ? user2image : '/images/user.svg'}
+                      src={user2image ? user2image : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -492,7 +488,7 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
         {reviewAnswer ? (
           <div className='audience__poll col-12 col-sm-6 col-md-4 col-lg-4 custom-dash'>
             <button className='btn btn-primary' onClick={onReviewAnswersClick}>
-              {t('Review Answers')}
+              {t('review_answers')}
             </button>
           </div>
         ) : (
@@ -500,12 +496,12 @@ const ShowScore = ({ t, score, totalQuestions, onReviewAnswersClick, reviewAnswe
         )}
         <div className='resettimer col-12 col-sm-6 col-md-4 col-lg-4 custom-dash'>
           <button className='btn btn-primary' onClick={goBack}>
-            {t('Back')}
+            {t('back')}
           </button>
         </div>
         <div className='skip__questions col-12 col-sm-6 col-md-4 col-lg-4 custom-dash'>
           <button className='btn btn-primary' onClick={goToHome}>
-            {t('Home')}
+            {t('home')}
           </button>
         </div>
       </div>

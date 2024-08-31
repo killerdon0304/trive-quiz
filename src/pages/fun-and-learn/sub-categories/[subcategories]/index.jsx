@@ -34,10 +34,10 @@ const Fun_and_Learn = ({ t }) => {
         setsubCategory([])
         if (cateSlug) {
             // subcategory api
-            subcategoriesApi(
-                cateSlug,
-                '',
-                response => {
+            subcategoriesApi({
+                category_id: cateSlug,
+                subcategory_id: '',
+                onSuccess: response => {
                     let subcategories = response.data
                     setsubCategory({
                         all: subcategories,
@@ -45,11 +45,11 @@ const Fun_and_Learn = ({ t }) => {
                     })
                     setSubLoading(false)
                 },
-                error => {
+                onError: error => {
                     console.log(error)
                     setSubLoading(false)
                 }
-            )
+            })
         }
 
 
@@ -58,78 +58,15 @@ const Fun_and_Learn = ({ t }) => {
     //handle subcatgory
     const handleChangeSubCategory = subcategory_data => {
         // this is for premium subcategory only
-        if (subcategory_data.has_unlocked === '0' && subcategory_data.is_premium === '1') {
-            getusercoinsApi(res => {
-                if (Number(subcategory_data.coins) > Number(res.data.coins)) {
-                    MySwal.fire({
-                        text: t("You Don't have enough coins"),
-                        icon: 'warning',
-                        showCancelButton: false,
-                        customClass: {
-                            confirmButton: 'Swal-confirm-buttons',
-                            cancelButton: "Swal-cancel-buttons"
-                        },
-                        confirmButtonText: `OK`,
-                        allowOutsideClick: false
-                    })
-                } else {
-                    MySwal.fire({
-                        text: t('Double your Coins and achieve a higher Score.'),
-                        icon: 'warning',
-                        showCancelButton: true,
-                        customClass: {
-                            confirmButton: 'Swal-confirm-buttons',
-                            cancelButton: "Swal-cancel-buttons"
-                        },
-                        confirmButtonText: `use ${subcategory_data.coins} coins`,
-                        allowOutsideClick: false
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            unlockpremiumcateApi(
-                                subcategory_data.maincat_id,
-                                subcategory_data.id,
-                                res => {
-                                    getAllData()
-
-                                    UserCoinScoreApi(
-                                        '-' + subcategory_data?.coins,
-                                        null,
-                                        null,
-                                        'fun and learn Premium Subcategories',
-                                        '1',
-                                        response => {
-                                            getusercoinsApi(
-                                                responseData => {
-                                                    updateUserDataInfo(responseData.data)
-                                                },
-                                                error => {
-                                                    console.log(error)
-                                                }
-                                            )
-                                        },
-                                        error => {
-                                            console.log(error)
-                                        }
-                                    )
-
-                                },
-                                err => console.log(err)
-                            )
-                        }
-                    })
+        const slug = subcategory_data.slug;
+        if (isValidSlug(slug)) {
+            router.push({
+                pathname: `/fun-and-learn/fun-data/${subcategory_data.slug}`, query: {
+                    catid: subcategory_data.id,
+                    subcatid: subcategory_data.id,
+                    isSubcategory: 1
                 }
             })
-        } else {
-            const slug = subcategory_data.slug;
-            if (isValidSlug(slug)) {
-                router.push({
-                    pathname: `/fun-and-learn/fun-data/${subcategory_data.slug}`, query: {
-                        catid: subcategory_data.id,
-                        subcatid: subcategory_data.id,
-                        isSubcategory: 1
-                    }
-                })
-            }
         }
 
     }
@@ -141,7 +78,7 @@ const Fun_and_Learn = ({ t }) => {
 
     return (
         <Layout>
-            <Breadcrumb showBreadcrumb={true} title={t('Fun and Learn')} content={t("Home")} contentTwo={subCategory?.selected?.category_name} contentThree="" />
+            <Breadcrumb showBreadcrumb={true} title={t('fun_and_learn')} content={t("home")} contentTwo={subCategory?.selected?.category_name} contentThree="" />
             <div className='funandlearn mb-5'>
                 <div className='container'>
                     <div className='row morphisam mb-5'>

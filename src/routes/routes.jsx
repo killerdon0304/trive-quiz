@@ -7,7 +7,7 @@ export const publicRoutes = [
   '/terms-conditions/',
   '/privacy-policy/',
   '/guest-profile/',
-  '/all-games/',
+  '/quiz-play/'
 ]
 
 export const authRoutes = ['/auth/login/', '/auth/sign-up/', '/auth/reset-password/', '/auth/otp-verify/']
@@ -28,4 +28,5 @@ export const protectedRoutes = [
   '/profile/play-bookmark-questions/',
   '/profile/statistics/',
   '/profile/',
+  '/play-bookmark-questions/'
 ]

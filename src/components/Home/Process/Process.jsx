@@ -1,8 +1,8 @@
 "use client"
-import titleline from '../../../assets/images/title-line.svg'
 import workline from "../../../assets/images/lightline.svg"
 import { withTranslation } from 'react-i18next'
 import { truncate } from 'src/utils'
+import LineFooterForTitle from 'src/components/Common/LineFooterForTitle'
 
 const Process = (props) => {
   return (
@@ -18,10 +18,8 @@ const Process = (props) => {
                 <h2>
                   {props?.homeSettings?.section3_heading}
                 </h2>
-                <div className='image'>
-                  <img src={titleline.src} alt='line' />
+                <LineFooterForTitle/>
                 </div>
-              </div>
             </div>
             <div className='row filter-layout masonary-layout mt-5'>
               <div className='col-xl-3 col-lg-3 col-md-6 wow fadeInLeft animated'>
@@ -36,10 +34,10 @@ const Process = (props) => {
                   <div className='work-process-one__single-content text-center'>
                     <h2>
                       <a>
-                        {truncate(props?.homeSettings?.section3_title1,19)}
+                        {truncate(props?.homeSettings?.section3_title1, 19)}
                       </a>
                     </h2>
-                    <p>{truncate(props?.homeSettings?.section3_desc1,72)}</p>
+                    <p>{truncate(props?.homeSettings?.section3_desc1, 72)}</p>
                   </div>
                 </div>
               </div>
@@ -56,10 +54,10 @@ const Process = (props) => {
                   <div className='work-process-one__single-content text-center'>
                     <h2>
                       <a>
-                        {truncate(props?.homeSettings?.section3_title2,19)}
+                        {truncate(props?.homeSettings?.section3_title2, 19)}
                       </a>
                     </h2>
-                    <p>{truncate(props?.homeSettings?.section3_desc2,72)}</p>
+                    <p>{truncate(props?.homeSettings?.section3_desc2, 72)}</p>
                   </div>
                 </div>
               </div>
@@ -76,10 +74,10 @@ const Process = (props) => {
                   <div className='work-process-one__single-content text-center'>
                     <h2>
                       <a>
-                        {truncate(props?.homeSettings?.section3_title3,19)}
+                        {truncate(props?.homeSettings?.section3_title3, 19)}
                       </a>
                     </h2>
-                    <p>{truncate(props?.homeSettings?.section3_desc3,72)}</p>
+                    <p>{truncate(props?.homeSettings?.section3_desc3, 72)}</p>
                   </div>
                 </div>
               </div>
@@ -96,12 +94,12 @@ const Process = (props) => {
                   <div className='work-process-one__single-content text-center'>
                     <h2>
                       <a>
-                        {truncate(props?.homeSettings?.section3_title4,19)}
+                        {truncate(props?.homeSettings?.section3_title4, 19)}
 
                       </a>
                     </h2>
                     <p>
-                      {truncate(props?.homeSettings?.section3_desc4,72)}
+                      {truncate(props?.homeSettings?.section3_desc4, 72)}
                     </p>
                   </div>
                 </div>

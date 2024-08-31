@@ -19,7 +19,6 @@ import toast from 'react-hot-toast'
 const apiClient = axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_BASE_URL}${process.env.NEXT_PUBLIC_END_POINT}`
 })
-
 const api =
   ({ dispatch, getState }) =>
   next =>
@@ -70,7 +69,6 @@ const api =
         onError,
         headers
       })
-
       if (response.data.error) {
         // console.log("reserr",response)
         // Dispatch Default onError Event
@@ -111,7 +109,7 @@ const api =
       }
     } catch (error) {
       // Dispatch Default onError Event
-
+      console.log(error)
       // if (error.response.status === 401) {
       //     error.message = "Please Login";
       // }

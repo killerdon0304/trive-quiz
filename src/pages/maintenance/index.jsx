@@ -12,7 +12,7 @@ const Maintainance = ({ t }) => {
     <>
       <Meta />
       <Layout>
-        <Breadcrumb title={t('Maintainance')} content="" contentTwo="" />
+        <Breadcrumb title={t('maintainance')} content="" contentTwo="" />
         <div className='Maintainance'>
           <div className='container'>
             <div className='row'>
@@ -23,7 +23,7 @@ const Maintainance = ({ t }) => {
                   </div>
                   <div className='right_text'>
                     <p>
-                      {t('We Apologize for the inconvenience, but we are performing some maintenance. We will back soon')}
+                      {t('sry_for_maintenance')}
                     </p>
                   </div>
                 </div>

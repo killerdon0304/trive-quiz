@@ -2,12 +2,15 @@
 import React, { useRef, useState } from 'react'
 import { Form, Button } from 'react-bootstrap'
 import { FaEnvelope } from 'react-icons/fa'
+import { HiOutlineMail } from "react-icons/hi";
 import toast from 'react-hot-toast'
 import { withTranslation } from 'react-i18next'
 import FirebaseData from 'src/utils/Firebase'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { t } from 'i18next'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { IoMdArrowRoundBack } from 'react-icons/io'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const ResetPassword = () => {
@@ -22,8 +25,7 @@ const ResetPassword = () => {
   // auth password reset
   const passwordReset = async email => {
     let promise = await new Promise(function (resolve, reject) {
-      auth
-        .sendPasswordResetEmail(email)
+      sendPasswordResetEmail(auth, email)
         .then(() => {
           resolve(`Password Reset Email sent to ${email}`)
         })
@@ -58,31 +60,31 @@ const ResetPassword = () => {
         <div className='custom-container glassmorcontain'>
           <div className='row morphisam'>
             <div className='col-12 border-line position-relative'>
-              <div className='inner__login__form outerline'>
-                <h3 className='mb-4'>{t('Forgot Password')}?</h3>
-                <p>{t('send link to get account')}</p>
+              <div className='inner__login__form outerline p-5'>
+                <h3 className='mb-4 Otp_Verification_title'>{t('forgot_pass')}?</h3>
+                <p>{t('send_link_to_get_account')}</p>
 
                 <Form onSubmit={e => handlePasswordReset(e)}>
-                  <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicEmail'>
+                  <Form.Group className='mb-3 position-relative d-inline-block w-100 mt-3' controlId='formBasicEmail'>
                     <Form.Control
                       type='email'
-                      placeholder={t('Enter Your Email')}
+                      placeholder={t('enter_email')}
                       className='inputelem'
                       ref={emailRef}
                       required={true}
                     />
                     <span className='emailicon'>
-                      <FaEnvelope />
+                    <HiOutlineMail />
                     </span>
                   </Form.Group>
                   <Button variant='primary w-100 mb-3' className='email_send' type='submit' disabled={loading}>
-                    {loading ? t('Please Wait') : t('Send')}
+                    {loading ? t('please_wait') : t('send')}
                   </Button>
                   {message && <p>{message}</p>}
                   <div className='sign__up'>
                     <p className=''>
-                      <span>
-                        <Link href={'/auth/login'}> {t('Back to Login')}</Link>
+                      <span >
+                        <Link className='text-decoration-none font-light' href={'/auth/login'}> <IoMdArrowRoundBack /> {t('back_to_login')}</Link>
                       </span>
                     </p>
                   </div>

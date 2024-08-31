@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { withTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -11,8 +11,8 @@ import dynamic from 'next/dynamic'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 import { t } from 'i18next'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
-import ContestPlayQuestions from 'src/components/Quiz/ContestPlay/ContestPlayQuestions'
-
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
+const ContestPlayQuestions = lazy(() => import('src/components/Quiz/ContestPlay/ContestPlayQuestions'))
 const ContestPlayBoard = () => {
 
   let getData = useSelector(selecttempdata)
@@ -34,9 +34,9 @@ const ContestPlayBoard = () => {
   const TIMER_SECONDS = parseInt(systemconfig.quiz_zone_duration)
 
   const getNewQuestions = contest_id => {
-    contestQuestionsApi(
-      contest_id,
-      response => {
+    contestQuestionsApi({
+      contest_id: contest_id,
+      onSuccess: response => {
         let questions = response.data.map(data => {
           return {
             ...data,
@@ -46,12 +46,12 @@ const ContestPlayBoard = () => {
         })
         setQuestions(questions)
       },
-      error => {
-        toast.error(t('No Questions Found'))
-        navigate.push('/all-games')
+      onError: error => {
+        toast.error(t('no_que_found'))
+        navigate.push('/quiz-play')
         console.log(error)
       }
-    )
+    })
   }
 
   const handleAnswerOptionClick = (questions) => {
@@ -74,27 +74,29 @@ const ContestPlayBoard = () => {
 
   return (
     <Layout>
-      <Breadcrumb title={t('Contest PlayBoard')} content="" contentTwo="" />
+      <Breadcrumb title={t('contest_playBoard')} content="" contentTwo="" />
       <div className='funandlearnplay dashboard'>
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 <>
                   {(() => {
                     if (questions && questions?.length >= 0) {
                       return (
-                        <ContestPlayQuestions
-                          questions={questions}
-                          timerSeconds={TIMER_SECONDS}
-                          onOptionClick={handleAnswerOptionClick}
-                          onQuestionEnd={onQuestionEnd}
-                        />
+                        <Suspense fallback={<QuestionSkeleton />}>
+                          <ContestPlayQuestions
+                            questions={questions}
+                            timerSeconds={TIMER_SECONDS}
+                            onOptionClick={handleAnswerOptionClick}
+                            onQuestionEnd={onQuestionEnd}
+                          />
+                        </Suspense>
                       )
                     } else {
                       return (
                         <div className='text-center text-white'>
-                          <p>{'No Questions Found'}</p>
+                          <p>{t('no_que_found')}</p>
                         </div>
                       )
                     }

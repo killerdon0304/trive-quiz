@@ -18,10 +18,10 @@ const TimerSlider = ({ onClick, t, timeractiveIndex }) => {
       }
     }
 
-  }else{
+  } else {
     arr.push(limit)
   }
-  
+
 
 
   const [showAllQuestions, setShowAllQuestions] = useState(false);
@@ -39,7 +39,7 @@ const TimerSlider = ({ onClick, t, timeractiveIndex }) => {
             <div className="cat__Box">
               <div className="sub_cat_title">
                 <p className="text-capitalize font-weight-bold font-smaller subcat__p">
-                  {t("Select Time Period in Minutes")}
+                  {t("select_time_in_min")}
                 </p>
               </div>
               <div className="sub_cat_title1">
@@ -49,7 +49,7 @@ const TimerSlider = ({ onClick, t, timeractiveIndex }) => {
                   style={{ cursor: "pointer" }}
                 >
                   {arr.length >= 8 ? <>
-                    {showAllQuestions ? t("See Less") : t("See More")}
+                    {showAllQuestions ? t("see_less") : t("see_more")}
                   </>
                     : null}
                 </p>
@@ -69,7 +69,7 @@ const TimerSlider = ({ onClick, t, timeractiveIndex }) => {
                               {data}
                             </p>
                             <p className="text-center m-auto d-block numText">
-                              {t("Time Duration")}
+                              {t("time_duration")}
                             </p>
                           </div>
                         </div>
@@ -90,7 +90,7 @@ const TimerSlider = ({ onClick, t, timeractiveIndex }) => {
                               {data}
                             </p>
                             <p className="text-center m-auto d-block numText">
-                              {t("Time Duration")}
+                              {t("time_duration")}
                             </p>
                           </div>
                         </div>

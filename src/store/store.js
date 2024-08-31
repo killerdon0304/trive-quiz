@@ -13,7 +13,8 @@ import homeReducer from './reducers/homeSlice'
 import notificationReducer from './reducers/notificationSlice'
 import api from '../store/middleware/api'
 import userCoinsSlice from './reducers/userCoinsSlice'
-
+import showSeconds from './reducers/showRemainingSeconds'
+import messageSlice from './reducers/messageSlice'
 const persistConfig = {
   key: 'root',
   storage
@@ -30,7 +31,9 @@ const rootReducer = combineReducers({
   WebSettings: webSettingsReducer,
   Home: homeReducer,
   Notification: notificationReducer,
-  UserCoins: userCoinsSlice
+  UserCoins: userCoinsSlice,
+  showSeconds:showSeconds,
+  message:messageSlice,
 })
 
 export const store = configureStore({

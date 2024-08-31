@@ -14,6 +14,7 @@ import Breadcrumb from 'src/components/Common/Breadcrumb'
 import gk from 'src/assets/images/Gk.svg'
 import errorimg from "src/assets/images/error.svg"
 import dynamic from 'next/dynamic'
+import { string } from 'prop-types'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 
@@ -52,37 +53,37 @@ const ExamModule = ({ t }) => {
     setLoading(true)
 
     // today data get
-    getexamModuleApi(
-      1,
-      0,
-      10,
-      response => {
+    getexamModuleApi({
+      type: 1,
+      offset: 0,
+      limit: 10,
+      onSuccess: response => {
         let todayallData = response.data
         setLoading(false)
         const filteredArray = todayallData.filter(obj => obj.exam_status !== '3')
         setTodaydata(filteredArray)
       },
-      error => {
+      onError: error => {
         console.log(error)
         setLoading(false)
       }
-    )
+    })
 
     // completed data get
-    getexamModuleApi(
-      2,
-      0,
-      50,
-      response => {
+    getexamModuleApi({
+      type: 2,
+      offset: 0,
+      limit: 50,
+      onSuccess: response => {
         let completeallData = response.data
         setCompleteData(completeallData)
         setLoading(false)
       },
-      error => {
+      onError: error => {
         // console.log(error);
         setLoading(false)
       }
-    )
+    })
   }
 
   useEffect(() => {
@@ -104,26 +105,22 @@ const ExamModule = ({ t }) => {
       if (isChecked) {
         navigate.push('/exam-module/exam-module-play')
       } else {
-        toast.error(t('Please agree to the exam rules'))
+        toast.error(t('agree_exam_rules'))
       }
     } else {
-      toast.error(t('Invalid exam key'))
+      toast.error(t('invalid_exam_key'))
     }
 
-    setExammoduleresultApi(
-      Number(selecttempData.id),
-      '',
-      '',
-      '',
-      1,
-      '',
-      resposne => {
+    setExammoduleresultApi({
+      exam_module_id: Number(selecttempData.id),
+      rules_violated: 1,
+      onSuccess: resposne => {
         // console.log(resposne);
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   // duration minute
@@ -173,19 +170,18 @@ const ExamModule = ({ t }) => {
     const dataEntries = Object.entries(data)
 
     // Convert statistics property to array of objects
-    // const statistics = dataEntries.reduce((acc, [key, value]) => {
-    //   if (key ==='statistics') {
-    //     return [...acc,...value]
-    //   } else {
-    //     return acc
-    //   }
-    // }, [])
-
-    // console.log(statistics)
+    const statistics = dataEntries.reduce((acc, [key, value]) => {
+      if (key === 'statistics') {
+        return [...acc, ...value]
+      } else {
+        return acc
+      }
+    }, [])
 
 
     // Convert answers property to array of objects
     const newdata = dataEntries.reduce((acc, [key, value]) => {
+
       if (key === 'statistics') {
         try {
           value = value && value.replace(/'/g, '"')
@@ -199,8 +195,13 @@ const ExamModule = ({ t }) => {
       return { ...acc, [key]: value }
     }, {})
 
+
+
     setPopupCompleteData([newdata])
   }
+
+  useEffect(() => {
+  }, [popupCompleteData])
 
   const totals = popupCompleteData.reduce((acc, data) => {
     data.statistics.forEach(stat => {
@@ -210,6 +211,7 @@ const ExamModule = ({ t }) => {
     });
     return acc;
   }, { totalQuestions: 0, totalCorrect: 0, totalIncorrect: 0 });
+
 
   function formatDate(dateString) {
     const date = new Date(dateString);
@@ -226,13 +228,13 @@ const ExamModule = ({ t }) => {
 
   return (
     <Layout>
-      <Breadcrumb showBreadcrumb={true} title={t('Exam')} content={t('Home')} allgames={t('all-games')} contentTwo="" />
+      <Breadcrumb showBreadcrumb={true} title={t('exam')} content={t('home')} allgames={`${t('quiz')} ${t('play')}`} contentTwo="" />
       <div className='SelfLearning ExamModule contestPlay mb-5'>
         <div className='container'>
           <div className='row  morphisam mb-5'>
-            <div className='col-md-12 col-sm-12 col-12 col-lg-12 mx-auto my-5 my-md-0'>
+            <div className='col-md-12 col-sm-12 col-12 col-lg-11 mx-auto my-5 my-md-0'>
               <Tabs id='fill-tab-example' activeKey={key} onSelect={k => setKey(k)} fill className='mb-3'>
-                <Tab eventKey='Today' title={t('Today')}>
+                <Tab eventKey="Today" title={`${t('today')} ${t('exam')}`}>
                   <>
                     <div className="row today-exam">
                       {loading ? (
@@ -262,7 +264,7 @@ const ExamModule = ({ t }) => {
                                           </div>
                                         </div>
                                       </span>
-                                      <span className='examTotMarks'> {data.total_marks} {t('Marks')}</span>
+                                      <span className='examTotMarks'> {data.total_marks} {t('marks')}</span>
                                     </div>
                                   </div>
 
@@ -275,13 +277,13 @@ const ExamModule = ({ t }) => {
                       ) : (
                         <div className='error_content'>
                           <img src={errorimg.src} title='wrteam' className='error_img' />
-                          <h6 className='text-center '>{t('No exam for today')}</h6>
+                          <h6 className='text-center '>{t('no_exam_for_today')}</h6>
                         </div>
                       )}
                     </div>
                   </>
                 </Tab>
-                <Tab eventKey='Completed' title={t('Completed')}>
+                <Tab eventKey='Completed' title={`${t('completed')} ${t('exam')}`}>
                   <>
                     <div className="row">
 
@@ -309,7 +311,7 @@ const ExamModule = ({ t }) => {
                                           </div>
                                         </div>
                                       </span>
-                                      <span className='examTotMarks'> {data.total_marks} {t('Marks')}</span>
+                                      <span className='examTotMarks'> {data.total_marks} {t('marks')}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -321,7 +323,7 @@ const ExamModule = ({ t }) => {
                       ) : (
                         <div className='error_content'>
                           <img src={errorimg.src} title='wrteam' className='error_img' />
-                          <h6 className='text-center '>{t('Have not completed any exam yet')}</h6>
+                          <h6 className='text-center '>{t('have_not_completed_any_exam_yet')}</h6>
                         </div>
                       )}
                     </div>
@@ -334,7 +336,7 @@ const ExamModule = ({ t }) => {
       </div>
       <Modal
         centered
-        visible={notificationmodal}
+        open={notificationmodal}
         onOk={() => setNotificationModal(false)}
         onCancel={() => setNotificationModal(false)}
         footer={null}
@@ -348,13 +350,13 @@ const ExamModule = ({ t }) => {
               fontSize: '24px',
               fontFamily: "Lato",
               fontWeight: '700'
-            }}>{t("Enter in Exam")}</span>
+            }}>{t("enter_in_exam")}</span>
             <span className='text-center mb-4' style={{
               color: '#090029',
               fontSize: '20px',
               fontFamily: "Lato",
               fontWeight: '400'
-            }}>{t("Please enter the Exam Key")}</span>
+            }}>{t("enter_exam_key")}</span>
           </div>
           <form onSubmit={e => handleSubmit(e)}>
             <input
@@ -368,18 +370,18 @@ const ExamModule = ({ t }) => {
             />
             <hr />
             <div style={{ background: 'white', borderRadius: '16px', padding: '10px 4px' }}>
-              <p className='text-center' style={{ color: '#090029', fontWeight: '600' }}>{t('Exam Rules')}</p>
+              <p className='text-center' style={{ color: '#090029', fontWeight: '600' }}>{t('exam_rules')}</p>
               <ul>
-                <li>{t('I will not copy and give this exam with honesty')}</li>
-                <li>{t('If you lock your phone then exam will complete automatically')}</li>
+                <li>{t('no_copy_exam_honesty')}</li>
+                <li>{t('lock_phone_exam_complete')}</li>
                 <li>
                   {t(
-                    "If you minimize application or open other application and don't come back to application with in 5 seconds then exam will complete automatically"
+                    "minimize_app"
                   )}
                 </li>
-                <li>{t('Screen recording is prohibited')}</li>
-                <li>{t('In Android screenshot capturing is prohibited')}</li>
-                <li>{t('In ios, if you take screenshot then rules will violate and it will inform to examinator')}</li>
+                <li>{t('screen_recording_prohibited')}</li>
+                <li>{t('no_android_screenshot')}</li>
+                <li>{t('ios_screenshot_inform_examinator')}</li>
               </ul>
             </div>
 
@@ -387,12 +389,12 @@ const ExamModule = ({ t }) => {
             <div className='d-flex align-items-center justify-content-center'>
               <label className=' d-flex align-items-center text-center justify-content-center' style={{ color: '#090029', fontWeight: '600' }}>
                 <input type='checkbox' onChange={e => setIsChecked(e.target.checked)} className='me-2' />
-                {t('I agree with Exam Rules')}
+                {t('i_agree_exam_rules')}
               </label>
             </div>
             <div className='text-center mt-4'>
               <button type='submit' className='btn btn-primary'>
-                {t('Start Exam')}
+                {t('start_exam')}
               </button>
             </div>
           </form>
@@ -402,7 +404,7 @@ const ExamModule = ({ t }) => {
       {/* complete data */}
       <Modal
         centered
-        visible={ExamCompleteModal}
+        open={ExamCompleteModal}
         onOk={() => setExamCompleteModalModal(false)}
         onCancel={() => setExamCompleteModalModal(false)}
         footer={null}
@@ -410,7 +412,7 @@ const ExamModule = ({ t }) => {
       >
         {/* <div className="custom_checkbox completeDataModal mt-4">
           <div className="result_title">
-            <h3>{t("Exam Result")}</h3>
+            <h3>{t("exam Result")}</h3>
           </div>
           <div className="result_marks_data">
             {popupCompleteData && popupCompleteData.map((data, index) => {
@@ -422,7 +424,7 @@ const ExamModule = ({ t }) => {
                     <p>{t("Obtained Marks")} :</p> <span className="result_Data">{data.obtained_marks + "/" + data.total_marks}</span>
                   </div>
                   <div className="inner_data">
-                    <p>{t("Exam Duration")} :</p> <span className="result_Data">{duration}</span>
+                    <p>{t("exam Duration")} :</p> <span className="result_Data">{duration}</span>
                   </div>
                   <div className="inner_data">
                     <p>{t("Completed In")} :</p> <span className="result_Data">{totalduration}</span>
@@ -470,7 +472,7 @@ const ExamModule = ({ t }) => {
                 data.statistics && data.statistics.map((elem, index) => {
                   return (
                     <div key={index}>
-                      <h6>{elem.mark}{" "}{t("Mark Questions")}</h6>
+                      <h6>{elem.mark}{" "}{t("mark_questions")}</h6>
                       <div className="inner_total_data mb-4">
                         <div className="inner_questions">
                           <div>
@@ -508,27 +510,27 @@ const ExamModule = ({ t }) => {
         </div> */}
 
         <div className='exm_model_cont'>
-          <h1 className='exm_res_head'>Exam Result</h1>
+          <h1 className='exm_res_head'>{t("exam_result")}</h1>
 
           {popupCompleteData && popupCompleteData.map((data, index) => {
             return (
               <>
                 <p className='exm_date'>{formatDate(data.date)}</p>
                 <p className='exm_dep'>{data.title}</p>
-                <h1 className='obt_marks'>Obtained Marks : {data.obtained_marks + "/" + data.total_marks}</h1>
+                <h1 className='obt_marks'>{t("obtained_marks")} : {data.obtained_marks + "/" + data.total_marks}</h1>
                 <div className='exm_content'>
                   <div className='total_que'>
-                    <p>Total Question</p>
-                    <p>[ {totals.totalQuestions} Que ]</p>
+                    <p>{`${t('total')} ${t('questions')} `}</p>
+                    <p>[ {totals.totalQuestions} {t("Que")} ]</p>
                   </div>
                   <div className='correct_incorrect'>
                     <div className="correctAnswers">
                       <p>{totals.totalCorrect}</p>
-                      <p>Correct Answer</p>
+                      <p>{t("correct")} {t("answer")}</p>
                     </div>
                     <div className='incorrectAnswers'>
                       <p>{totals.totalIncorrect}</p>
-                      <p>Incorrect Answer</p>
+                      <p>{t("incorrect")} {t("answer")}</p>
                     </div>
                   </div>
                 </div>
@@ -536,20 +538,20 @@ const ExamModule = ({ t }) => {
                   data.statistics.map((item) => (
                     <div className="correct_incorrect_wrapper">
                       <div className='all_que_head'>
-                        <p>All Question {item.mark} Marks</p>
-                        <p>[ {parseInt(item.correct_answer) + parseInt(item.incorrect)} Que ]</p>
+                        <p>{t("All")} {t("Question")} {item.mark} {t("marks")}</p>
+                        <p>[ {parseInt(item.correct_answer) + parseInt(item.incorrect)} {t("Que")} ]</p>
                       </div>
                       <div className="correctIncorrect_card">
                         <div className='correct_incorrect'>
                           <div className="correctAnswers">
                             <p>{item.correct_answer}</p>
-                            <p>Correct Answer</p>
+                            <p>{t("correct")} {t("answer")}</p>
                             <div className='correct_border'></div>
                           </div>
                           <div className='correct_incorrect_separator'></div>
                           <div className='incorrectAnswers'>
                             <p>{item.incorrect}</p>
-                            <p>Incorrect Answer</p>
+                            <p>{t("incorrect")} {t("answer")}</p>
                             <div className='incorrct_border'></div>
                           </div>
                         </div>

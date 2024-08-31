@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import toast from 'react-hot-toast'
 import { withTranslation } from 'react-i18next'
@@ -12,6 +12,7 @@ import { groupbattledata } from 'src/store/reducers/groupbattleSlice'
 import dynamic from 'next/dynamic'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 import { t } from 'i18next'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 const PlaywithFriendBattlequestions = dynamic(() => import('src/components/Quiz/RandomBattle/PlaywithFriendBattlequestions'), {
   ssr: false
 })
@@ -36,71 +37,44 @@ const RandomPlay = () => {
 
   useEffect(() => {
     if (getData) {
-      getNewQuestions(getData.room_id, getData.category_id, getData.destroy_match)
+      if (systemconfig.battle_mode_one_category == "1") {
+        getNewQuestions(getData.room_id, getData.category_id, getData.destroy_match)
+      } else {
+        getNewQuestions(getData.room_id, "", getData.destroy_match)
+      }
     }
   }, [])
 
 
   const getNewQuestions = (match_id, category, destroy_match) => {
-    if (systemconfig.battle_random_category_mode == "1") {
-      RandomQuestionsApi(
-        match_id,
-        category,
-        destroy_match,
-        (response) => {
-          let questions = response.data.map((data) => {
+    RandomQuestionsApi({
+      match_id: match_id,
+      category: category,
+      destroy_match: destroy_match,
+      onSuccess: (response) => {
+        let questions = response.data.map((data) => {
 
-            let question = data.question
+          let question = data.question
 
-            let note = data?.note
+          let note = data?.note
 
-            return {
-              ...data,
-              note: note,
-              question: question,
-              selected_answer: "",
-              isAnswered: false,
-            };
-          });
-          // console.log("que",questions)
-          setQuestions(questions);
-        },
-        (error) => {
-          toast.error(t("No Questions Found"));
-          navigate.push("/all-games");
-          console.log(error);
-        }
-      );
-    } else {
-      RandomQuestionsApi(
-        match_id,
-        "",
-        destroy_match,
-        (response) => {
-          let questions = response.data.map((data) => {
-
-            let question = data.question
-
-            let note = data?.note
-
-            return {
-              ...data,
-              note: note,
-              question: question,
-              selected_answer: "",
-              isAnswered: false,
-            };
-          });
-          // console.log("que",questions)
-          setQuestions(questions);
-        },
-        (error) => {
-          toast.error(t("No Questions Found"));
-          navigate.push("/all-games");
-          console.log(error);
-        }
-      );
-    }
+          return {
+            ...data,
+            note: note,
+            question: question,
+            selected_answer: "",
+            isAnswered: false,
+          };
+        });
+        // console.log("que",questions)
+        setQuestions(questions);
+      },
+      onError: (error) => {
+        toast.error(t("no_que_found"));
+        navigate.push("/quiz-play");
+        console.log(error);
+      }
+    })
   };
 
   const handleAnswerOptionClick = (questions) => {
@@ -122,28 +96,30 @@ const RandomPlay = () => {
 
   return (
     <Layout>
-      <Breadcrumb title={t('1 vs 1 Battle')} content="" contentTwo="" />
+      <Breadcrumb title={t('1 v/s 1 Battle')} content="" contentTwo="" />
       <div className='funandlearnplay dashboard battlerandom'>
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 <>
                   {(() => {
                     if (questions && questions?.length > 0 && questions[0]?.id !== '') {
                       return (
-                        <PlaywithFriendBattlequestions
-                          questions={questions}
-                          timerSeconds={TIMER_SECONDS}
-                          onOptionClick={handleAnswerOptionClick}
-                          onQuestionEnd={onQuestionEnd}
-                          showQuestions={true}
-                        />
+                        <Suspense fallback={<QuestionSkeleton />}>
+                          <PlaywithFriendBattlequestions
+                            questions={questions}
+                            timerSeconds={TIMER_SECONDS}
+                            onOptionClick={handleAnswerOptionClick}
+                            onQuestionEnd={onQuestionEnd}
+                            showQuestions={true}
+                          />
+                        </Suspense>
                       )
                     } else {
                       return (
                         <div className='text-center text-white'>
-                          <p>{'No Questions Found'}</p>
+                          {/* <p>{t('No Questions Found')}</p> */}
                         </div>
                       )
                     }

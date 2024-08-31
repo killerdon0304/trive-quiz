@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import toast from 'react-hot-toast'
 import { withTranslation } from 'react-i18next'
@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 import { t } from 'i18next'
 import DOMPurify from 'dompurify'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 const GroupQuestions = dynamic(() => import('src/components/Quiz/GroupBattle/GroupQuestions'), {
   ssr: false
 })
@@ -37,27 +38,10 @@ const GroupPlay = () => {
     }
   }, [])
 
-  const RenderHtmlContent = ({ htmlContent }) => {
-    const containerRef = useRef(null);
-
-    useEffect(() => {
-      // Sanitize HTML content
-      const sanitizedHtml = DOMPurify && DOMPurify.sanitize(htmlContent);
-
-      // Set the sanitized HTML content
-      containerRef.current.innerHTML = sanitizedHtml;
-
-      // Trigger MathJax typesetting
-      window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub, containerRef.current]);
-    }, [htmlContent]);
-
-    return <div ref={containerRef} />
-  }
-
   const getNewQuestions = (match_id) => {
-    QuestionsByRoomIdApi(
-      match_id,
-      (response) => {
+    QuestionsByRoomIdApi({
+      room_id: match_id,
+      onSuccess: (response) => {
         let questions = response.data.map((data) => {
 
 
@@ -84,12 +68,12 @@ const GroupPlay = () => {
         // console.log("que",questions)
         setQuestions(questions);
       },
-      (error) => {
-        toast.error(t("No Questions Found"));
-        navigate.push("/all-games");
+      onError: (error) => {
+        toast.error(t("no_que_found"));
+        navigate.push("/quiz-play");
         console.log(error);
       }
-    );
+    });
   };
 
   const handleAnswerOptionClick = (questions) => {
@@ -113,22 +97,24 @@ const GroupPlay = () => {
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 <>
                   {(() => {
                     if (questions && questions?.length > 0 && questions[0]?.id !== '') {
                       return (
-                        <GroupQuestions
-                          questions={questions}
-                          timerSeconds={TIMER_SECONDS}
-                          onOptionClick={handleAnswerOptionClick}
-                          onQuestionEnd={onQuestionEnd}
-                        />
+                        <Suspense fallback={<QuestionSkeleton />}>
+                          <GroupQuestions
+                            questions={questions}
+                            timerSeconds={TIMER_SECONDS}
+                            onOptionClick={handleAnswerOptionClick}
+                            onQuestionEnd={onQuestionEnd}
+                          />
+                        </Suspense>
                       )
                     } else {
                       return (
                         <div className='text-center text-white'>
-                          <p>{'No Questions Found'}</p>
+                          <p>{t('no_que_found')}</p>
                         </div>
                       )
                     }

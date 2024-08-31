@@ -21,7 +21,8 @@ import { logout } from 'src/store/reducers/userSlice'
 import { notificationData } from 'src/store/reducers/notificationSlice'
 import { Dropdown, Menu } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
-
+import { signOut } from 'firebase/auth'
+import userImg from '../../../assets/images/user.svg'
 const MySwal = withReactContent(Swal)
 
 const MobileMenus = ({ t, setIsActive }) => {
@@ -37,7 +38,7 @@ const MobileMenus = ({ t, setIsActive }) => {
     }
   }
 
-  const firebase = FirebaseData()
+  const { auth } = FirebaseData()
   const { i18n } = useTranslation()
 
   const userData = useSelector(state => state.User)
@@ -49,8 +50,8 @@ const MobileMenus = ({ t, setIsActive }) => {
 
   const handleSignout = () => {
     MySwal.fire({
-      title: t('Logout!'),
-      text: t('Are you sure'),
+      title: t('logout'),
+      text: t('are_you_sure'),
       icon: 'warning',
       showCancelButton: true,
       customClass: {
@@ -61,7 +62,7 @@ const MobileMenus = ({ t, setIsActive }) => {
     }).then(result => {
       if (result.isConfirmed) {
         logout()
-        firebase.auth.signOut()
+        signOut(auth)
         navigate.push('/')
       }
     })
@@ -121,10 +122,10 @@ const MobileMenus = ({ t, setIsActive }) => {
   const profileGuest = e => {
     e.preventDefault()
     MySwal.fire({
-      text: t('To access this feature you need to Login!!'),
+      text: t('login_first'),
       icon: 'warning',
       showCancelButton: true,
-      cancelButtonText: t('Cancel'),
+      cancelButtonText: t('cancel'),
       customClass: {
         confirmButton: 'Swal-confirm-buttons',
         cancelButton: "Swal-cancel-buttons"
@@ -142,7 +143,7 @@ const MobileMenus = ({ t, setIsActive }) => {
   const menu = (
     <Menu>
       {languages && languages.map((data) => (
-        <Menu.Item key={data.id} onClick={() => {languageChange(data.language, data.code, data.id); setIsActive(false)}}>
+        <Menu.Item key={data.id} onClick={() => { languageChange(data.language, data.code, data.id); setIsActive(false) }}>
           {data.language}
         </Menu.Item>
       ))}
@@ -186,9 +187,9 @@ const MobileMenus = ({ t, setIsActive }) => {
                   ''
                 )}
                 <Modal
-                  title={t('Notification')}
+                  title={t('notification')}
                   centered
-                  visible={notificationmodal}
+                  open={notificationmodal}
                   onOk={() => setNotificationModal(false)}
                   onCancel={() => setNotificationModal(false)}
                   footer={null}
@@ -200,7 +201,7 @@ const MobileMenus = ({ t, setIsActive }) => {
                         <div key={key} className='outer_noti'>
                           <img
                             className='noti_image'
-                            src={data.image ? data.image : '/images/user.svg'}
+                            src={data.image ? data.image : userImg.src}
                             alt='notication'
                             id='image'
                             onError={imgError}
@@ -217,7 +218,7 @@ const MobileMenus = ({ t, setIsActive }) => {
                     <div className="noDataDiv">
                       <img src={noNotificationImg.src} alt="" />
                       {/* <h5 className='text-center text-black-50'>
-                        {t('No Data found')}</h5> */}
+                        {t('no_data_found')}</h5> */}
                     </div>
                   )}
                 </Modal>
@@ -240,7 +241,7 @@ const MobileMenus = ({ t, setIsActive }) => {
               <ul className='sub-menu'>
                 <li>
                   <Link href='/profile' onClick={() => setIsActive(false)}>
-                    <span className='menu-text'>{t('Profile')}</span>
+                    <span className='menu-text'>{t('profile')}</span>
                   </Link>
                 </li>
                 <li>
@@ -251,7 +252,7 @@ const MobileMenus = ({ t, setIsActive }) => {
                       setIsActive(false)
                     }}
                   >
-                    <span className='menu-text'>{t('Logout')}</span>
+                    <span className='menu-text'>{t('logout')}</span>
                   </Link>
                 </li>
               </ul>
@@ -275,7 +276,7 @@ const MobileMenus = ({ t, setIsActive }) => {
                       profileGuest(e)
                       setIsActive(false)
                     }}
-                  >{`${t('Hello Guest')}`}</button>
+                  >{`${t('hello_guest')}`}</button>
                   <button
                     className='btn btn-primary custom_button_right ms-2 mt-2'
                     onClick={e => {
@@ -290,12 +291,12 @@ const MobileMenus = ({ t, setIsActive }) => {
                 <>
                   <li>
                     <Link href='/auth/login' onClick={() => setIsActive(false)}>
-                      <span className='menu-text'>{t('Login')}</span>
+                      <span className='menu-text'>{t('login')}</span>
                     </Link>
                   </li>
                   <li>
                     <Link href='/auth/sign-up' onClick={() => setIsActive(false)}>
-                      <span className='menu-text'>{t('Sign Up')}</span>
+                      <span className='menu-text'>{t('sign_up')}</span>
                     </Link>
                   </li>
                 </>

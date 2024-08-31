@@ -11,17 +11,10 @@ import { websettingsData } from 'src/store/reducers/webSettings'
 import { battleDataClear } from 'src/store/reducers/groupbattleSlice'
 import { useRouter } from 'next/navigation'
 import { t } from 'i18next'
-// import { getUserBadgesApi } from 'src/utils/api'
 
 import Breadcrumb from 'src/components/Common/Breadcrumb'
-import dynamic from 'next/dynamic'
-import Meta from 'src/components/SEO/Meta'
-const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
-// import LearningFun from 'src/components/Common/LearningFun'
-// import FAQS from 'src/components/Common/FAQS'
-
-const Quizplay = () => {
+const AllQuiz = () => {
   const router = useRouter()
 
   const userData = useSelector(state => state.User)
@@ -90,7 +83,7 @@ const Quizplay = () => {
     {
       id: 5,
       image: self_challange_icon,
-      quizname: 'Self Learning',
+      quizname: "Self Challenge",
       quizDesc: 'Challenge Yourself',
       url: '/self-learning',
       selfchallengehide: '1'
@@ -149,9 +142,9 @@ const Quizplay = () => {
   // redirect to page
   const redirectdata = data => {
     const isAuthenticated = userData.token
-    if(isAuthenticated === null){
+    if (isAuthenticated === null) {
       router.push('/auth/login')
-      toast.error('please login first')
+      toast.error('Please login first')
       return
     }
     if (!data.disabled) {
@@ -280,12 +273,12 @@ const Quizplay = () => {
   //   }
   // }, [languages.code])
 
-  useEffect(()=>{
+  useEffect(() => {
     // disable battle if both one vs one and playwithfriend 
-    if(systemconfig.battle_mode_random === "0" && systemconfig.battle_mode_one === "0"){
+    if (systemconfig.battle_mode_random === "0" && systemconfig.battle_mode_one === "0") {
       setData(prevData => prevData.filter(quiz => quiz.quizname !== '1 v/s 1 Battle'))
     }
-  },[systemconfig])
+  }, [systemconfig])
 
   useEffect(() => {
     // clear local storage poins
@@ -293,9 +286,9 @@ const Quizplay = () => {
   }, [])
 
   return (
-    <Layout>
+    <>
       {/* <Meta /> */}
-      <Breadcrumb showBreadcrumb={true} title={t('all-games')} content={t('Home')} contentTwo={t('all-games')} />
+      <Breadcrumb showBreadcrumb={true} title={`${t('quiz')} ${t('play')}`} content={t('home')} contentTwo={`${t('quiz')} ${t('play')}`} />
       <div className='Quizzone my-5'>
         <div className='container'>
           {data?.length === 0 ? (
@@ -343,7 +336,7 @@ const Quizplay = () => {
 
       <FAQS faqsData={faqsData} /> */}
 
-    </Layout>
+    </>
   )
 }
-export default withTranslation()(Quizplay)
+export default withTranslation()(AllQuiz)

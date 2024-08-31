@@ -46,9 +46,9 @@ const SelfLearning = () => {
   //start
   const handleStart = () => {
     if (!totalquestions.selected) {
-      toast.error(t('Please select Number of Questions'))
+      toast.error(t('select_questions'))
     } else if (!timerseconds.selected) {
-      toast.error(t('Please select Number of Timer'))
+      toast.error(t('select_time'))
     } else {
       router.push({ pathname: `/self-learning/self-learning-play` })
 
@@ -69,7 +69,7 @@ const SelfLearning = () => {
   return (
     <Layout>
       <div className='section_data'>
-        <Breadcrumb showBreadcrumb={true} title={t('Self Learning')} />
+        <Breadcrumb showBreadcrumb={true} title={t('Self Challenge')} />
         <div className='SelfLearning  mb-5'>
           <div className='container'>
             <div className='row morphisam mb-5'>
@@ -94,7 +94,7 @@ const SelfLearning = () => {
               <div className='row'>
                 <div className='start_button justify-content-center align-items-center d-flex'>
                   <button className='btn btn-primary' onClick={() => handleStart()}>
-                    {t('Let`s Start')}
+                    {t('l_start')}
                   </button>
                 </div>
               </div>

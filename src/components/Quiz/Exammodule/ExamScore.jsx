@@ -1,3 +1,4 @@
+"use client"
 import React, { useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { withTranslation } from 'react-i18next'
@@ -14,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import rightTickIcon from '../../../assets/images/check-circle-score-screen.svg'
 import crossIcon from '../../../assets/images/x-circle-score-screen.svg'
 import { websettingsData } from 'src/store/reducers/webSettings'
-
+import userImg from '../../../assets/images/user.svg'
 const ExamScore = ({ t, score, totalQuestions }) => {
 
   const navigate = useRouter()
@@ -45,20 +46,19 @@ const ExamScore = ({ t, score, totalQuestions }) => {
   }
 
   useEffect(() => {
-    setExammoduleresultApi(
-      Number(getData.id),
-      examsetquiz.remianingtimer,
-      examsetquiz.totalmarks,
-      examsetquiz.statistics,
-      1,
-      '',
-      resposne => {
+    setExammoduleresultApi({
+      exam_module_id: Number(getData.id),
+      total_duration: examsetquiz.remianingtimer,
+      obtained_marks: examsetquiz.totalmarks,
+      statistics: examsetquiz.statistics,
+      rules_violated: 1,
+      onSuccess: resposne => {
         // console.log(resposne);
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }, [])
 
   let newdata = Math.round(percentage)
@@ -90,7 +90,7 @@ const ExamScore = ({ t, score, totalQuestions }) => {
                     })}
                   >
                     <img
-                      src={userData?.data && userData?.data?.profile ? userData?.data?.profile : '/images/user.svg'}
+                      src={userData?.data && userData?.data?.profile ? userData?.data?.profile : userImg.src}
                       alt='user'
                       className='showscore-userprofile'
                       onError={imgError}
@@ -109,14 +109,14 @@ const ExamScore = ({ t, score, totalQuestions }) => {
                 <h1 className='winlos percentage'>{newdata}%</h1>
               </div>
               <h4 className='winlos'>
-                <b>{t(`Great Job!`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
+                <b>{t('great_job')} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
               </h4>
               <h5>{t(`Getting Closer to mastery!keep going!`)}</h5>
             </>
           ) : (
             <>
               <h4 className='winlos losText'>
-                <b>{t(`Good Effort!`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
+                <b>{t(`good_effort`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
               </h4>
               <h5>{t(`Getting Closer to mastery!keep going!`)}</h5>
               <span className='percentage'>{newdata} %</span>
@@ -129,7 +129,7 @@ const ExamScore = ({ t, score, totalQuestions }) => {
       <div className='my-4 align-items-center d-flex scoreCenterDiv'>
         <div className="getCoins">
           <span className='numbr'>{examsetquiz.totalmarks + ' / ' + getData.total_marks}</span>
-          <span className='text'>{t("Marks")}</span>
+          <span className='text'>{t("marks")}</span>
         </div>
 
         <div className="rightWrongAnsDiv">
@@ -146,13 +146,13 @@ const ExamScore = ({ t, score, totalQuestions }) => {
       </div>
       <div className='dashoptions row text-center'>
         <div className='resettimer col-12 col-sm-6 col-md-2 custom-dash'>
-          <button className='btn btn-primary' onClick={goBack}>
-            {t('Back')}
+          <button className='' onClick={goBack}>
+            {t('back')}
           </button>
         </div>
         <div className='skip__questions col-12 col-sm-6 col-md-2 custom-dash'>
           <button className='btn btn-primary' onClick={goToHome}>
-            {t('Home')}
+            {t('home')}
           </button>
         </div>
       </div>

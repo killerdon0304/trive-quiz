@@ -12,8 +12,9 @@ import {
 import { LoadQuizZoneCompletedata, percentageSuccess, questionsDataSuceess, selecttempdata } from 'src/store/reducers/tempDataSlice'
 import { updateUserDataInfo } from 'src/store/reducers/userSlice'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
-import rightTickIcon from '../../../assets/images/check-circle-score-screen.svg'
-import crossIcon from '../../../assets/images/x-circle-score-screen.svg'
+import QuestionTopSection from 'src/components/view/common/QuestionTopSection'
+import QuestionMiddleSectionOptions from 'src/components/view/common/QuestionMiddleSectionOptions'
+import { setSecondSnap, setTotalSecond } from 'src/store/reducers/showRemainingSeconds'
 
 const ContestPlayQuestions = ({
   t,
@@ -59,55 +60,59 @@ const ContestPlayQuestions = ({
       let userScore = null
       let result_score = Score.current
       let percentage = (100 * result_score) / questions?.length
-      UserStatisticsApi(
-        questions?.length,
-        result_score,
-        questions[currentQuestion].category,
-        percentage,
-        response => { },
-        error => {
+      UserStatisticsApi({
+        questions_answered: questions?.length,
+        correct_answers: result_score,
+        category_id: questions[currentQuestion].category,
+        percentage: percentage,
+        onSuccess: response => { },
+        onError: error => {
           console.log(error)
         }
-      )
+      })
 
-      userScore = await calculateScore(result_score, questions?.length ,systemconfig?.contest_mode_correct_credit_score, systemconfig?.contest_mode_wrong_deduct_score)
+      userScore = await calculateScore(result_score, questions?.length, systemconfig?.contest_mode_correct_credit_score, systemconfig?.contest_mode_wrong_deduct_score)
       let status = '0'
       if (percentage >= Number(systemconfig.quiz_winning_percentage)) {
         coins = await calculateCoins(Score.current, questions?.length)
-        UserCoinScoreApi(
-          coins,
-          userScore,
-          null,
-          'ContestPlay Quiz Win',
-          status,
-          response => {
+        UserCoinScoreApi({
+          coins: coins,
+          score: userScore,
+          title: `${t('contestPlay')} ${t('quiz_win')} `,
+          status: status,
+          onSuccess: response => {
             updateUserDataInfo(response.data)
           },
-          error => {
+          onError: error => {
             console.log(error)
           }
-        )
+        })
       }
-      
-     
+
+
       await onQuestionEnd(coins, userScore)
 
-       // let correctAnswer = JSON.stringify(result_score)
-       setcontestleaderboardApi(
-        getData.contest_id,
-        questions?.length,
-        result_score,
-        userScore,
-        response => { },
-        error => {
+      // let correctAnswer = JSON.stringify(result_score)
+      setcontestleaderboardApi({
+        contest_id: getData.contest_id,
+        questions_attended: questions?.length,
+        correct_answers: result_score,
+        score: userScore,
+        onSuccess: response => { },
+        onError: error => {
           console.log(error)
         }
-      )
+      })
     }
   }
 
   // button option answer check
   const handleAnswerOptionClick = async (selected_option) => {
+
+    let seconds = child.current.getMinuteandSeconds()
+    dispatch(setTotalSecond(timerSeconds))
+    dispatch(setSecondSnap(seconds))
+
 
     if (!answeredQuestions.hasOwnProperty(currentQuestion)) {
       addAnsweredQuestion(currentQuestion);
@@ -166,31 +171,7 @@ const ContestPlayQuestions = ({
   return (
     <React.Fragment>
       <div className='dashboardPlayUppDiv funLearnQuestionsUpperDiv text-end p-2 pb-0'>
-        <div className="leftSec">
-          <div className="coins">
-            <span>{t("Coins")} : {userData?.data?.coins}</span>
-          </div>
-
-          <div className="rightWrongAnsDiv">
-            <span className='rightAns'>
-              <img src={rightTickIcon.src} alt="" />
-              {corrAns}
-            </span>
-
-            <span className='wrongAns'>
-              <img src={crossIcon.src} alt="" />
-              {inCorrAns}
-            </span>
-          </div>
-
-        </div>
-
-        <div className="rightSec">
-          <div className="rightWrongAnsDiv correctIncorrect">
-            <span className='rightAns'>
-              {currentQuestion + 1} - {questions?.length}</span>
-          </div>
-        </div>
+        <QuestionTopSection corrAns={corrAns} inCorrAns={inCorrAns} currentQuestion={currentQuestion} questions={questions} showAnswers={true} />
       </div>
 
       <div className='questions contestque' ref={scroll}>
@@ -204,136 +185,7 @@ const ContestPlayQuestions = ({
           </div>
         </div>
 
-        <div className='content__text'>
-          <p className='question-text pt-4'>{questions[currentQuestion].question}</p>
-        </div>
-
-        {questions[currentQuestion].image ? (
-          <div className='imagedash'>
-            <img src={questions[currentQuestion].image} onError={imgError} alt='' />
-          </div>
-        ) : (
-          ''
-        )}
-
-        {/* options */}
-        <div className='row optionsWrapper'>
-          {questions[currentQuestion].optiona ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('a')}`}
-                  onClick={e => handleAnswerOptionClick('a')}
-                >
-                  <div className='row'>
-                    <div className='col'>{questions[currentQuestion].optiona}</div>
-                    {questions[currentQuestion].probability_a ? (
-                      <div className='col text-end'>{questions[currentQuestion].probability_a}</div>
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                </button>
-              </div>
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].optionb ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('b')}`}
-                  onClick={e => handleAnswerOptionClick('b')}
-                >
-                  <div className='row'>
-                    <div className='col'>{questions[currentQuestion].optionb}</div>
-                    {questions[currentQuestion].probability_b ? (
-                      <div className='col text-end'>{questions[currentQuestion].probability_b}</div>
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                </button>
-              </div>
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].question_type === '1' ? (
-            <>
-              {questions[currentQuestion].optionc ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('c')}`}
-                      onClick={e => handleAnswerOptionClick('c')}
-                    >
-                      <div className='row'>
-                        <div className='col'>{questions[currentQuestion].optionc}</div>
-                        {questions[currentQuestion].probability_c ? (
-                          <div className='col text-end'>{questions[currentQuestion].probability_c}</div>
-                        ) : (
-                          ''
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-              {questions[currentQuestion].optiond ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('d')}`}
-                      onClick={e => handleAnswerOptionClick('d')}
-                    >
-                      <div className='row'>
-                        <div className='col'>{questions[currentQuestion].optiond}</div>
-                        {questions[currentQuestion].probability_d ? (
-                          <div className='col text-end'>{questions[currentQuestion].probability_d}</div>
-                        ) : (
-                          ''
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-              {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
-                <div className='row d-flex justify-content-center mob_resp_e'>
-                  <div className='col-md-6 col-12'>
-                    <div className='inner__questions'>
-                      <button
-                        className={`btn button__ui w-100 ${setAnswerStatusClass('e')}`}
-                        onClick={e => handleAnswerOptionClick('e')}
-                      >
-                        <div className='row'>
-                          <div className='col'>{questions[currentQuestion].optione}</div>
-                          {questions[currentQuestion].probability_e ? (
-                            <div className='col' style={{ textAlign: 'right' }}>
-                              {questions[currentQuestion].probability_e}
-                            </div>
-                          ) : (
-                            ''
-                          )}
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-            </>
-          ) : (
-            ''
-          )}
-        </div>
+        <QuestionMiddleSectionOptions questions={questions} currentQuestion={currentQuestion} setAnswerStatusClass={setAnswerStatusClass} handleAnswerOptionClick={handleAnswerOptionClick} probability={false} latex={false} />
       </div>
     </React.Fragment>
   )

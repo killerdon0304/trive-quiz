@@ -1,8 +1,7 @@
 "use client"
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { withTranslation } from 'react-i18next'
-import GuessthewordQuestions from 'src/components/Quiz/Guesstheword/GuessthewordQuestions.jsx'
 import { useDispatch, useSelector } from 'react-redux'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
 import { resultTempDataSuccess } from 'src/store/reducers/tempDataSlice'
@@ -12,8 +11,9 @@ import { useRouter } from 'next/router'
 import { getBookmarkData } from 'src/utils'
 import { t } from 'i18next'
 import dynamic from 'next/dynamic'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
-
+const GuessthewordQuestions = lazy(() => import('src/components/Quiz/Guesstheword/GuessthewordQuestions.jsx'))
 const Guessthewordplay = () => {
 
   const router = useRouter()
@@ -37,10 +37,10 @@ const Guessthewordplay = () => {
 
   const getNewQuestions = (type, type_id) => {
 
-    guessthewordApi(
-      type,
-      type_id,
-      response => {
+    guessthewordApi({
+      type: type,
+      type_id: type_id,
+      onSuccess: response => {
         let bookmark = getBookmarkData()
         let questions_ids = Object.keys(bookmark).map(index => {
           return bookmark[index].question_id
@@ -61,12 +61,12 @@ const Guessthewordplay = () => {
         })
         setQuestions(questions)
       },
-      error => {
-        toast.error(t('No Questions Found'))
+      onError: error => {
+        toast.error(t('no_que_found'))
         // navigate.push('/')
         console.log(error)
       }
-    )
+    })
   }
 
   const handleAnswerOptionClick = async (questions) => {
@@ -101,24 +101,27 @@ const Guessthewordplay = () => {
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 <>
                   {(() => {
                     if (questions && questions?.length >= 0) {
                       return (
-                        <GuessthewordQuestions
-                          questions={questions}
-                          timerSeconds={TIMER_SECONDS}
-                          onOptionClick={handleAnswerOptionClick}
-                          onQuestionEnd={onQuestionEnd}
-                          showQuestions={false}
-                          showLifeLine={false}
-                        />
+                        <Suspense fallback={<QuestionSkeleton />}>
+                          <GuessthewordQuestions
+                            questions={questions}
+                            timerSeconds={TIMER_SECONDS}
+                            onOptionClick={handleAnswerOptionClick}
+                            onQuestionEnd={onQuestionEnd}
+                            showQuestions={false}
+                            showLifeLine={false}
+                            isBookmarkPlay={false}
+                          />
+                        </Suspense>
                       )
                     } else {
                       return (
                         <div className='text-center text-white'>
-                          <p>{'No Questions Found'}</p>
+                          <p>{t('no_que_found')}</p>
                         </div>
                       )
                     }

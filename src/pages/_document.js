@@ -20,7 +20,7 @@ const CustomDocument = () => {
 
 
   return (
-    <Html lang='en'>
+    <Html lang='en' version='2.1.8' >
       <Head>
         <link rel='preconnect' href='https://fonts.googleapis.com' />
         <link rel='preconnect' href='https://fonts.gstatic.com' />

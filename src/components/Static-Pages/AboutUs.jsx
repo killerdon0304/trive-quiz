@@ -18,7 +18,7 @@ const AboutUs = ({ t }) => {
 
     return (
         <Layout>
-            <Breadcrumb title={t('about-us')} content="" contentTwo="" />
+            <Breadcrumb title={t('about_us')} content="" contentTwo="" />
             <div className='Instruction'>
                 <div className='container'>
                     <div className='row morphisam'>

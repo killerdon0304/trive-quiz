@@ -3,12 +3,13 @@ import React, { useEffect, useRef, useState } from 'react'
 import DataTable from 'react-data-table-component'
 import { withTranslation } from 'react-i18next'
 import { DailyLeaderBoardApi, GlobleLeaderBoardApi, MonthlyLeaderBoardApi } from 'src/store/actions/campaign'
-import { imgError } from 'src/utils'
+import { imgError, truncate } from 'src/utils'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import dynamic from 'next/dynamic'
 import FormattedNumberData from 'src/components/FormatNumber/FormatedNumberData'
 import { t } from 'i18next'
 import LeftTabProfile from 'src/components/Profile/LeftTabProfile'
+import userImg from '../../../assets/images/user.svg'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const LeaderBoard = () => {
@@ -26,7 +27,7 @@ const LeaderBoard = () => {
   const columns = [
 
     {
-      name: t('Rank'),
+      name: t('rank'),
       selector: row => {
         const value = row.user_rank
         return typeof value === 'string' ? parseInt(value, 10) : value
@@ -42,13 +43,13 @@ const LeaderBoard = () => {
           </div>
         ) : (
           <div className='leaderboard-profile'>
-            <img src='/images/user.svg' className='w-25' alt={row.name}></img>
+            <img src={userImg.src} className='w-25' alt={row.name}></img>
           </div>
         ),
       sortable: false
     },
     {
-      name: t('Player'),
+      name: t('player'),
       selector: row => `${row.name}`,
       sortable: false
     },
@@ -59,45 +60,45 @@ const LeaderBoard = () => {
   ]
 
   const getDailyLeaderBoard = (offset, limit) => {
-    DailyLeaderBoardApi(
-      offset,
-      limit,
-      response => {
+    DailyLeaderBoardApi({
+      offset: offset,
+      limit: limit,
+      onSuccess: response => {
         setTopRankers(response?.data?.top_three_ranks)
         setTableData(response.data, response?.data?.my_rank, response.data.other_users_rank, response.total)
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   const getMonthlyLeaderBoard = (offset, limit) => {
-    MonthlyLeaderBoardApi(
-      offset,
-      limit,
-      response => {
+    MonthlyLeaderBoardApi({
+      offset: offset,
+      limit: limit,
+      onSuccess: response => {
         setTopRankers(response?.data.top_three_ranks)
         setTableData(response.data, response.data.my_rank, response.data.other_users_rank, response.total)
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   const getGlobleLeaderBoard = (offset, limit) => {
-    GlobleLeaderBoardApi(
-      offset,
-      limit,
-      response => {
+    GlobleLeaderBoardApi({
+      offset: offset,
+      limit: limit,
+      onSuccess: response => {
         setTopRankers(response?.data?.top_three_ranks)
         setTableData(response.data, response.data.my_rank, response.data.other_users_rank, response.total)
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   const fetchData = (category, limit, offset) => {
@@ -192,7 +193,7 @@ const LeaderBoard = () => {
   return (
     <div ref={myElementRef}>
       <Layout>
-        <Breadcrumb title={t('LeaderBoard')} content="" contentTwo="" />
+        <Breadcrumb title={t('leader_board')} content="" contentTwo="" />
         <div className='Profile__Sec'>
           <div className='container'>
             <div className='morphism'>
@@ -214,21 +215,19 @@ const LeaderBoard = () => {
                                 {topRankers &&
                                   topRankers.slice(2, 3).map((data, index) => {
                                     return (
-                                      <>
-                                        <div className='col-lg-4 col-md-4 col-12 thirdDataCard' key={index}>
-                                          <li className='third_data' >
-                                            <div className='Leaf_img'>
+                                      <div className='col-lg-4 col-md-4 col-12 thirdDataCard' key={index}>
+                                        <li className='third_data' >
+                                          <div className='Leaf_img'>
 
-                                              <img className='data_profile' src={data.profile} alt='third' onError={imgError} />
+                                            <img className='data_profile' src={data.profile} alt='third' onError={imgError} />
 
-                                            </div>
+                                          </div>
 
-                                            <h5 className='data_nam'>{data.name}</h5>
-                                            <p className='data_score'>{data.score}</p>
-                                            <span className='data_rank'>{t("3")}</span>
-                                          </li>
-                                        </div>
-                                      </>
+                                          <h5 className='data_nam'>{truncate(data.name, 17)}</h5>
+                                          <p className='data_score'>{data.score}</p>
+                                          <span className='data_rank'>{t("3")}</span>
+                                        </li>
+                                      </div>
                                     )
                                   })}
 
@@ -236,18 +235,18 @@ const LeaderBoard = () => {
                                 {topRankers &&
                                   topRankers.slice(0, 1).map((data, index) => {
                                     return (
-                                      <>
-                                        <div className='col-lg-4 col-md-4 col-12 firstDataCard'>
-                                          <li className='first_data' key={index}>
-                                            <div className='Leaf_img'>
-                                              <img className='data_profile' src={data.profile} alt='first' onError={imgError} />
-                                            </div>
-                                            <h5 className='data_nam'>{data.name}</h5>
-                                            <p className='data_score'>{data.score}</p>
-                                            <span className='data_rank'>{t("1")}</span>
-                                          </li>
-                                        </div>
-                                      </>
+
+                                      <div className='col-lg-4 col-md-4 col-12 firstDataCard' key={index}>
+                                        <li className='first_data' >
+                                          <div className='Leaf_img'>
+                                            <img className='data_profile' src={data.profile} alt='first' onError={imgError} />
+                                          </div>
+                                          <h5 className='data_nam'>{truncate(data.name, 17)}</h5>
+                                          <p className='data_score'>{data.score}</p>
+                                          <span className='data_rank'>{t("1")}</span>
+                                        </li>
+                                      </div>
+
                                     )
                                   })}
 
@@ -255,20 +254,20 @@ const LeaderBoard = () => {
                                 {topRankers &&
                                   topRankers.slice(1, 2).map((data, index) => {
                                     return (
-                                      <>
-                                        <div className='col-lg-4 col-md-4 col-12 secondDataCard'>
-                                          <li className='second_data' key={index}>
-                                            <div className='Leaf_img'>
 
-                                              <img className='data_profile' src={data.profile} alt='second' onError={imgError} />
+                                      <div className='col-lg-4 col-md-4 col-12 secondDataCard' key={index}>
+                                        <li className='second_data'>
+                                          <div className='Leaf_img'>
 
-                                            </div>
-                                            <h5 className='data_nam'>{data.name}</h5>
-                                            <p className='data_score'>{data.score}</p>
-                                            <span className='data_rank'>{t("2")}</span>
-                                          </li>
-                                        </div>
-                                      </>
+                                            <img className='data_profile' src={data.profile} alt='second' onError={imgError} />
+
+                                          </div>
+                                          <h5 className='data_nam'>{truncate(data.name, 17)}</h5>
+                                          <p className='data_score'>{data.score}</p>
+                                          <span className='data_rank'>{t("2")}</span>
+                                        </li>
+                                      </div>
+
                                     )
                                   })}
                               </ul>
@@ -281,42 +280,43 @@ const LeaderBoard = () => {
 
                             <div className='row two_content_data'>
                               <div className='col-sm-4 col-4 col-md-4 col-lg-4 sortBy'>
-                                <span className={`sortByData ${category === 'Global' ? 'activeTab' : ''}`} onClick={() => handleCategoryChange('Global')}>{t("All Time")}</span>
+                                <span className={`sortByData ${category === 'Global' ? 'activeTab' : ''}`} onClick={() => handleCategoryChange('Global')}>{`${t('all')} ${t('time')} `
+}</span>
                               </div>
                               <div className='col-sm-4 col-4 col-md-4 col-lg-4 sortBy'>
                                 <span className={`sortByData ${category === 'Monthly' ? 'activeTab' : ''}`} onClick={() => handleCategoryChange('Monthly')}>{t("Monthly")}</span>
                               </div>
                               <div className='col-sm-4 col-4 col-md-4 col-lg-4 sortBy'>
-                                <span className={`sortByData ${category === 'Daily' ? 'activeTab' : ''}`} onClick={() => handleCategoryChange('Daily')}>{t("Today")}</span>
+                                <span className={`sortByData ${category === 'Daily' ? 'activeTab' : ''}`} onClick={() => handleCategoryChange('Daily')}>{t("today")}</span>
                               </div>
                             </div>
                           </div>
-
-
-                          <DataTable
-                            title=''
-                            columns={columns}
-                            data={leaderBoard && leaderBoard.other_users_rank}
-                            pagination
-                            highlightOnHover
-                            paginationServer
-                            noDataComponent={t("There are no records to display")}
-                            paginationTotalRows={leaderBoard && leaderBoard?.total}
-                            paginationPerPage={limit}
-                            paginationComponentOptions={{
-                              noRowsPerPage: true
-                            }}
-                            className='dt-center rankTableData'
-                            onChangePage={page => changePage(page)}
-                          />
-                          {/* my rank show */}
+                          {leaderBoard.total !== "0" && (
+                            <DataTable
+                              title=''
+                              columns={columns}
+                              data={leaderBoard && leaderBoard.other_users_rank}
+                              pagination
+                              highlightOnHover
+                              paginationServer
+                              noDataComponent={t("no_records")}
+                              paginationTotalRows={leaderBoard && leaderBoard?.total}
+                              paginationPerPage={limit}
+                              paginationComponentOptions={{
+                                noRowsPerPage: true
+                              }}
+                              className='dt-center rankTableData'
+                              onChangePage={page => changePage(page)}
+                            />
+                          )}
+                             {/* my rank show */}
                           <table className='my_rank_bottom'>
                             <thead>
                               <tr>
-                                <th>{t('My Rank')} </th>
-                                <th>{t('Profile')}</th>
-                                <th>{t('Player')}</th>
-                                <th>{t('Score')}</th>
+                                <th>{t('my_rank')} </th>
+                                <th>{t('profile')}</th>
+                                <th>{t('player')}</th>
+                                <th>{t('score')}</th>
                               </tr>
                             </thead>
                             <tbody>

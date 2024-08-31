@@ -18,7 +18,7 @@ const TermAndConditions = ({ t }) => {
 
     return (
         <Layout>
-            <Breadcrumb title={t('Terms and Conditions')} content="" contentTwo="" />
+            <Breadcrumb title={t('t&c')} content="" contentTwo="" />
             <div className='Instruction'>
                 <div className='container'>
                     <div className='row morphisam'>

@@ -27,10 +27,13 @@ export const userSlice = createSlice({
       user.data = data
       user.token = data?.api_token
       user.isLogin = true
+
       user.data.userStatics = {}
+
       user.data.userProfileStatics = {}
-      //Capitalize the first letter of first_name
+
       user.data.name = data?.name.charAt(0).toUpperCase() + data?.name.slice(1)
+
       return user
     },
     logoutSuccess: user => {
@@ -68,8 +71,7 @@ export const userSlice = createSlice({
 
       // Update 'email' if present in data
       user.data.email = data?.email ?? user.data?.email
-    },
-    
+    }
   }
 })
 

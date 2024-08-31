@@ -80,7 +80,7 @@ const Timer = forwardRef(({ timerSeconds, onTimerExpire }, ref) => {
 
     return (
         <div className="coinsdata">
-            <div className="progressbar-container">
+            <div className="progressbar-container adj_timer_for_ui">
                 <CircularProgressbar
                     value={timervalue}
                     text={

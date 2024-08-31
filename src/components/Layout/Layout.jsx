@@ -11,9 +11,11 @@ import dynamic from 'next/dynamic'
 import { Suspense } from 'react';
 import Meta from '../SEO/Meta';
 import { homeUpdateLanguage, loadHome } from 'src/store/reducers/homeSlice';
+// import ErrorBoundary from '../HandleError/ErrorBoundary ';
 const TopHeader = dynamic(() => import('../NavBar/TopHeader'), { ssr: false })
 const Header = dynamic(() => import('./Header'), { ssr: false })
 const Footer = dynamic(() => import('./Footer'), { ssr: false })
+// const Notification = dynamic(() => import('../FirebaseNotification/Notification'), { ssr: false })
 
 const Layout = ({ children }) => {
 
@@ -21,14 +23,16 @@ const Layout = ({ children }) => {
 
   const navigate = useRouter()
 
+  const [loading, setLoading] = useState(true);
+
   const [redirect, setRedirect] = useState(false)
+
 
   const selectcurrentLanguage = useSelector(selectCurrentLanguage)
 
   const webSettings = useSelector(websettingsData)
 
   const dispatch = useDispatch();
-
 
   useEffect(() => {
     loadHome({
@@ -46,25 +50,25 @@ const Layout = ({ children }) => {
   // all settings data
   useEffect(() => {
 
-    settingsLoaded("")
+    settingsLoaded({ type: "" })
 
     LoadWebSettingsDataApi(
-      () => { },
+      () => { setLoading(false); },
       () => { }
     )
 
-    systemconfigApi(
-      success => { },
-      error => {
+    systemconfigApi({
+      onSuccess: () => { setLoading(false); },
+      onError: (error) => {
         console.log(error)
       }
-    )
+    })
 
     i18n.changeLanguage(selectcurrentLanguage.code)
 
   }, [])
 
-  
+
 
   // Maintainance Mode
   const getsysData = useSelector(sysConfigdata)
@@ -105,26 +109,33 @@ const Layout = ({ children }) => {
   }, [redirect])
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--primary-color', webSettings && webSettings?.primary_color)
-    document.documentElement.style.setProperty('--secondary-color', webSettings && webSettings?.footer_color)
+    document.documentElement.style.setProperty('--primary-color', webSettings && webSettings?.primary_color ? webSettings && webSettings?.primary_color : "#EF5388FF")
+    document.documentElement.style.setProperty('--secondary-color', webSettings && webSettings?.footer_color ? webSettings?.footer_color : "#090029FF")
   }, [webSettings])
 
   return (
-    typeof webSettings === 'object' ?
-      <>
-        <Meta />
+    <>
 
-        <TopHeader />
-        <Header />
-        {children}
-        <Footer />
+      {loading ? (
+        <Suspense fallback>
+          <div className='loader' style={loaderstyles.loader}>
+            <RiseLoader className='inner_loader' style={loaderstyles.img} />
+          </div>
+        </Suspense>
+      ) : (
+        <>
+          {/* <ErrorBoundary> */}
+          <Meta />
+          <TopHeader />
+          <Header />
+          {children}
+          <Footer />
+          {/* </ErrorBoundary> */}
+        </>
 
-      </>
-      : <Suspense fallback>
-        <div className='loader' style={loaderstyles.loader}>
-          <RiseLoader className='inner_loader' style={loaderstyles.img} />
-        </div>
-      </Suspense>
+      )}
+
+    </>
   )
 }
 export default Layout

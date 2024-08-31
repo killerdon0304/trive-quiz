@@ -3,6 +3,7 @@ import { store } from "../store";
 
 const initialState = {
     data: {},
+    bookmarkId : ''
 }
 
 export const bookmarkSlice = createSlice({
@@ -12,11 +13,14 @@ export const bookmarkSlice = createSlice({
         bookmarkSuccess: (bookmark, action) => {
             bookmark.data = action.payload.data
         },
+        bookmarkId: (bookmark, action) => {
+            bookmark.bookmarkId = action.payload
+        },
     }
 })
 
 
-export const { bookmarkSuccess } = bookmarkSlice.actions;
+export const { bookmarkSuccess,bookmarkId } = bookmarkSlice.actions;
 export default bookmarkSlice.reducer;
 
 // load data

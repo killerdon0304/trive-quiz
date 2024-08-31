@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { withTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
@@ -9,9 +9,9 @@ import Breadcrumb from 'src/components/Common/Breadcrumb'
 import { useRouter } from 'next/router'
 import { resultTempDataSuccess, reviewAnswerShowSuccess } from 'src/store/reducers/tempDataSlice'
 import dynamic from 'next/dynamic'
-import TrueandFalseQuestions from 'src/components/Quiz/TrueandFalse/TrueandFalseQuestions'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
-
+const TrueandFalseQuestions = lazy(() => import('src/components/Quiz/TrueandFalse/TrueandFalseQuestions'))
 const TrueandFalsePlay = ({ t }) => {
   //questions
   const [questions, setQuestions] = useState([{ id: '', isBookmarked: false }])
@@ -32,9 +32,9 @@ const TrueandFalsePlay = ({ t }) => {
 
   //api
   const getTrueandFalseQuestions = () => {
-    trueandfalsequestionsApi(
-      2,
-      response => {
+    trueandfalsequestionsApi({
+      type: 2,
+      onSuccess: response => {
         if (response.data && !response.data.error) {
           let questions = response.data.map((data) => {
 
@@ -53,11 +53,11 @@ const TrueandFalsePlay = ({ t }) => {
           setQuestions(questions)
         }
       },
-      error => {
-        toast.error(t('No Questions Found'))
-        navigate.push('/all-games')
+      onError: error => {
+        toast.error(t('no_que_found'))
+        navigate.push('/quiz-play')
       }
-    )
+    })
   }
 
   //answer option click
@@ -89,21 +89,23 @@ const TrueandFalsePlay = ({ t }) => {
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 {(() => {
                   if (questions && questions?.length >= 0) {
                     return (
-                      <TrueandFalseQuestions
-                        questions={questions}
-                        timerSeconds={TIMER_SECONDS}
-                        onOptionClick={handleAnswerOptionClick}
-                        onQuestionEnd={onQuestionEnd}
-                      />
+                      <Suspense fallback={<QuestionSkeleton />}>
+                        <TrueandFalseQuestions
+                          questions={questions}
+                          timerSeconds={TIMER_SECONDS}
+                          onOptionClick={handleAnswerOptionClick}
+                          onQuestionEnd={onQuestionEnd}
+                        />
+                      </Suspense>
                     )
                   } else {
                     return (
                       <div className='text-center text-white'>
-                        <p>{'No Questions Found'}</p>
+                        <p>{t('no_que_found')}</p>
                       </div>
                     )
                   }

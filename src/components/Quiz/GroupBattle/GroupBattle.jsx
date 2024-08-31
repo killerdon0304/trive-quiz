@@ -12,21 +12,25 @@ import { selectCurrentLanguage } from 'src/store/reducers/languageSlice'
 import { settingsData, sysConfigdata } from 'src/store/reducers/settingsSlice'
 import { battleDataClear, groupbattledata, LoadGroupBattleData } from 'src/store/reducers/groupbattleSlice'
 import { Loadtempdata } from 'src/store/reducers/tempDataSlice'
-import { imgError, roomCodeGenerator } from 'src/utils/index'
+import { imgError, roomCodeGenerator, truncate } from 'src/utils/index'
 import { websettingsData } from 'src/store/reducers/webSettings'
 import { useRouter } from 'next/router'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import { IoShareSocialOutline } from "react-icons/io5";
 import ShareMenu from 'src/components/Common/ShareMenu'
 import coinimg from "src/assets/images/coin.svg"
-import FirebaseData from 'src/utils/Firebase'
 import vsimg from "src/assets/images/vs.svg"
 import { t } from 'i18next'
-
+import { getFirestore, collection, doc, onSnapshot, getDocs, query, serverTimestamp, addDoc, updateDoc, deleteDoc, where, runTransaction, getDoc } from 'firebase/firestore';
+import OTPInput from 'react-otp-input'
+import Image from 'next/image'
+import cat_placeholder_img from "src/assets/images/Elite Placeholder.svg"
 
 const GroupBattle = () => {
 
   const MySwal = withReactContent(Swal)
+
+  const db = getFirestore();
 
   // store data get
   const userData = useSelector(state => state.User)
@@ -48,11 +52,13 @@ const GroupBattle = () => {
 
   const [battleUserData, setBattleUserData] = useState([])
 
+  const [joinCode, setJoincode] = useState('');
+
   const TabPane = Tabs.TabPane
 
   const [category, setCategory] = useState({
     all: '',
-    selected: '',
+    category_data: '',
     category_name: ""
   })
 
@@ -68,9 +74,11 @@ const GroupBattle = () => {
 
   const [playwithfriends, setPlaywithfriends] = useState(false)
 
-  const [joinuserpopup, setJoinUserPopup] = useState(false)
+  const [EntryFeeCoin, setEntryFeeCoin] = useState(0)
 
-  const [inputCode, setInputCode] = useState('')
+  const [showCategoryNameOnJoinRoomS, setShowCategoryNameOnJoinRoomS] = useState()
+
+  const [joinuserpopup, setJoinUserPopup] = useState(false)
 
   const [showStart, setShowStart] = useState(false)
 
@@ -82,17 +90,22 @@ const GroupBattle = () => {
 
   const [createdByroom, setCreatedByRoom] = useState()
 
-  const { db, firebase } = FirebaseData()
+  const [fireCatId, setFireCatId] = useState();
 
-  const inputRef = useRef()
+  const [joinImage, setJoinImg] = useState();
+
+  const [isloading, setIsLoading] = useState()
+
+  const [createdBy, setCreatedBy] = useState()
 
   const navigate = useRouter()
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [roomCodeForJoiner, setRoomCodeForJoiner] = useState();
 
   const currentUrl = process.env.NEXT_PUBLIC_APP_WEB_URL + navigate.asPath;
 
-  let category_selected = category.selected
+  let category_selected = category?.category_data?.id
 
   let username = userData?.data?.name || userData?.data?.email || userData?.data?.mobile
 
@@ -118,10 +131,10 @@ const GroupBattle = () => {
 
   // get category data
   const getAllData = () => {
-    categoriesApi(
-      1,
-      3,
-      response => {
+    categoriesApi({
+      type: 1,
+      sub_type: 3,
+      onSuccess: response => {
         let categoires = response.data
         // Filter the categories based on has_unlocked and is_premium
         const filteredCategories = categoires.filter(category => {
@@ -130,23 +143,23 @@ const GroupBattle = () => {
         setCategory({
           ...category,
           all: filteredCategories,
-          selected: filteredCategories[0].id,
+          category_data: filteredCategories[0],
           category_name: filteredCategories[0].category_name
         })
         setLoading(false)
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   // database collection
   const createBattleRoom = async (categoryId, name, profileUrl, uid, roomCode, roomType, entryFee) => {
     try {
-      let documentreference = db.collection('multiUserBattleRoom').add({
+      let documentreference = await addDoc(collection(db, 'multiUserBattleRoom'), {
         categoryId: categoryId,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: serverTimestamp(),
         createdBy: uid,
         entryFee: entryFee ? entryFee : 0,
         readyToPlay: false,
@@ -181,13 +194,14 @@ const GroupBattle = () => {
           uid: ''
         }
       })
-
       // created id by user to check for result screen
       LoadGroupBattleData('createdby', uid)
       setShowStart(true)
 
+
       return await documentreference
     } catch (error) {
+      console.log("Errpr", error)
       toast.error(error)
     }
   }
@@ -195,34 +209,39 @@ const GroupBattle = () => {
   // delete battle room
   const deleteBattleRoom = async documentId => {
     try {
-      await db.collection('multiUserBattleRoom').doc(documentId).delete()
+      await deleteDoc(doc(db, "multiUserBattleRoom", documentId));
     } catch (error) {
-      toast.error(error)
+      toast.error(error);
     }
-  }
+  };
+
 
   // find room
   const searchBattleRoom = async categoryId => {
     try {
-      let userfind = await db
-        .collection('multiUserBattleRoom')
-        .where('categoryId', '==', categoryId)
-        .where('roomCode', '==', '')
-        .where('user2.uid', '==', '')
-        .get()
+      const q = query(
+        collection(db, 'multiUserBattleRoom'),
+        where('categoryId', '==', categoryId),
+        where('roomCode', '==', ''),
+        where('user2.uid', '==', '')
+      );
 
-      let userfinddata = userfind.docs
+      // Execute the query
+      const userFindSnapshot = await getDocs(q);
 
-      let index = userfinddata.findIndex(elem => {
+      // Extract documents from the snapshot
+      const userFindData = userFindSnapshot.docs;
+
+      let index = userFindData.findIndex(elem => {
         return elem.data().createdBy == useruid
       })
 
       if (index !== -1) {
-        deleteBattleRoom(userfinddata[index].id)
-        userfinddata.splice(userfinddata?.length, index)
+        deleteBattleRoom(userFindData[index].id)
+        userFindData.splice(userFindData?.length, index)
       }
 
-      return userfinddata
+      return userFindData
     } catch (err) {
       toast.error('Error getting document', err)
     }
@@ -230,6 +249,7 @@ const GroupBattle = () => {
 
   // search room
   const searchRoom = async () => {
+    setIsLoading(true)
     let inputCoincheck = inputText.current.value
     let usercoins = userData?.data?.coins
 
@@ -239,7 +259,7 @@ const GroupBattle = () => {
     }
 
     if (Number(inputCoincheck) > Number(usercoins)) {
-      toast.error(t('you dont have enough coins'))
+      toast.error(t('no_enough_coins'))
       return
     }
 
@@ -248,18 +268,19 @@ const GroupBattle = () => {
 
       let roomdocid
 
-      if (documents?.length !== 0) {
-        let room = documents
-
-        roomdocid = room.id
+      if (documents && documents.length > 0) {
+        let room = documents;
+        roomdocid = room.id;
       } else {
-        roomdocid = await createRoom()
+        roomdocid = await createRoom();
       }
 
       LoadGroupBattleData('roomid', roomdocid)
+      setIsLoading(false)
     } catch (error) {
       toast.error(error)
       console.log(error)
+      setIsLoading(false)
     }
   }
 
@@ -273,19 +294,12 @@ const GroupBattle = () => {
     Loadtempdata(data)
   }
 
-  // room code generator
-  const randomFixedInteger = length => {
-    return Math.floor(
-      Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1) - 1)
-    ).toString()
-  }
-
   //create room for battle
   const createRoom = async () => {
     // battleroom joiing state
 
     if (usercoins < 0 || usercoins === '0') {
-      toast.error(t('you dont have enough coins'))
+      toast.error(t('no_enough_coins'))
       return
     }
 
@@ -300,9 +314,8 @@ const GroupBattle = () => {
 
     // pass room code in sql database for fetching questions
     createRoommulti(roomCode)
-
     let data = await createBattleRoom(
-      systemconfig.battle_group_category_mode == '1' ? category_selected : '',
+      systemconfig.battle_mode_group_category == '1' ? category_selected : '',
       username,
       userprofile,
       useruid,
@@ -310,6 +323,7 @@ const GroupBattle = () => {
       'public',
       selectedcoins
     )
+
     // popup user found with friend
     setPlaywithfriends(true)
 
@@ -318,17 +332,18 @@ const GroupBattle = () => {
 
   // joinroom
   const joinRoom = async (name, profile, usernameid, roomcode, coin) => {
+    setRoomCodeForJoiner(roomcode)
     try {
       if (!roomcode) {
         setIsButtonClicked(false)
         setJoinUserPopup(false)
-        toast.error(t('please enter a room code'))
+        toast.error(t('enter_room_code'))
       } else {
         let result = await joinBattleRoomFrd(name, profile, usernameid, roomcode, coin)
         if (typeof result === 'undefined') {
           setIsButtonClicked(false)
           setJoinUserPopup(false)
-          toast.error(t('room code is not valid'))
+          toast.error(t('room_code_not_valid'))
         } else {
           setJoinUserPopup(true)
           LoadGroupBattleData('roomid', result.id)
@@ -342,12 +357,13 @@ const GroupBattle = () => {
   // get userroom
   const getMultiUserBattleRoom = async roomcode => {
     try {
-      let typeBattle = await db.collection('multiUserBattleRoom').where('roomCode', '==', roomcode).get()
-      return typeBattle
+      const q = query(collection(db, 'multiUserBattleRoom'), where('roomCode', '==', roomcode));
+      const typeBattle = await getDocs(q);
+      return typeBattle;
     } catch (e) {
-      console.log('error', e)
+      console.log('error', e);
     }
-  }
+  };
 
   // joinBattleRoomFrd
   const joinBattleRoomFrd = async (name, profile, usernameid, roomcode, coin) => {
@@ -357,57 +373,59 @@ const GroupBattle = () => {
 
       // // game started code
       if (mulituserbattle.docs[0].data().readyToPlay) {
-        toast.success('Game Started')
+        toast.success('game_started')
       }
 
       // // not enough coins
       if (mulituserbattle.docs[0].data().entryFee > coin) {
-        toast.error(t('Not enough coins'))
+        toast.error(t('no_enough_coins'))
         return
       }
+      let entryfeecoind = mulituserbattle.docs[0].data().entryFee
+      let showCategoryNameOnJoinRoom = mulituserbattle.docs[0].data().categoryName
 
+      setEntryFeeCoin(entryfeecoind)
+      setShowCategoryNameOnJoinRoomS(showCategoryNameOnJoinRoom)
       //user2 update
       let docRef = mulituserbattle.docs[0].ref
 
-      return db.runTransaction(async transaction => {
-        let doc = await transaction.get(docRef)
+      return runTransaction(db, async transaction => {
+        let doc = await transaction.get(docRef);
 
         if (!doc.exists) {
-          toast.error('Document does not exist!')
+          toast.error('Document does not exist!');
         }
 
-        let userdetails = doc.data()
+        let userDetails = doc.data();
 
-        let user2 = userdetails.user2
-
-        let user3 = userdetails.user3
-
-        let user4 = userdetails.user4
+        let user2 = userDetails.user2;
+        let user3 = userDetails.user3;
+        let user4 = userDetails.user4;
 
         if (user2.uid === '') {
           transaction.update(docRef, {
             'user2.name': name,
             'user2.uid': usernameid,
             'user2.profileUrl': profile
-          })
+          });
         } else if (user3.uid === '') {
           transaction.update(docRef, {
             'user3.name': name,
             'user3.uid': usernameid,
             'user3.profileUrl': profile
-          })
+          });
         } else if (user4.uid === '') {
           transaction.update(docRef, {
             'user4.name': name,
             'user4.uid': usernameid,
             'user4.profileUrl': profile
-          })
+          });
         } else {
-          toast.error(t('room is full'))
+          toast.error(t('room_full'));
         }
 
-        return doc
-      })
+        return doc;
+      });
 
       //
     } catch (e) {
@@ -429,40 +447,33 @@ const GroupBattle = () => {
     inputText.current.value = ''
   }
 
-  // inputfeild data
-  const handlechange = e => {
-    setInputCode(e.target.value)
-  }
-
   // start button
   const startGame = e => {
-    let roomid = groupBattledata.roomID
+    let roomId = groupBattledata.roomID;
 
-    let docRef = db.collection('multiUserBattleRoom').doc(roomid)
+    let docRef = doc(db, 'multiUserBattleRoom', roomId);
 
-    return db.runTransaction(async transaction => {
-      let doc = await transaction.get(docRef)
+    return runTransaction(db, async transaction => {
+      let doc = await transaction.get(docRef);
       if (!doc.exists) {
-        toast.error('Document does not exist!')
+        toast.error('Document does not exist!');
       }
 
-      let userdetails = doc.data()
+      let userDetails = doc.data();
 
-      let user2 = userdetails.user2
-
-      let user3 = userdetails.user3
-
-      let user4 = userdetails.user4
+      let user2 = userDetails.user2;
+      let user3 = userDetails.user3;
+      let user4 = userDetails.user4;
 
       if (user2.uid !== '' || user3.uid !== '' || user4.uid !== '') {
         transaction.update(docRef, {
           readyToPlay: true
-        })
+        });
       } else {
-        toast.error(t('Player is not join yet'))
+        toast.error(t('player_not_join'));
       }
-      return doc
-    })
+      return doc;
+    });
   }
 
   // get id from localstorage for start button
@@ -472,170 +483,177 @@ const GroupBattle = () => {
   const handleSelectCategory = e => {
     const index = e.target.selectedIndex
     const el = e.target.childNodes[index]
-    let cat_id = el.getAttribute('id')
+    let cat_data = JSON.parse(el.getAttribute('data'))
     let cat_name = el.getAttribute('name')
-    setCategory({ ...category, selected: cat_id, category_name: cat_name })
+    setCategory({ ...category, category_data: cat_data, category_name: cat_name })
   }
 
   // pass room code in sql database for fetching questions
   const createRoommulti = roomCode => {
-    createMultiRoomApi(
-      roomCode,
-      'public',
-      category.selected ? category.selected : '',
-      '10',
-      resposne => { },
-      error => {
+    createMultiRoomApi({
+      room_id: roomCode,
+      room_type: 'public',
+      category: category.selected ? category.selected : '',
+      no_of_que: '10',
+      onSuccess: resposne => { },
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   useEffect(() => {
-    let documentRef = db.collection('multiUserBattleRoom').doc(roomiddata)
-    // console.log("document",documentRef)
-    let unsubscribe = documentRef.onSnapshot(
-      { includeMetadataChanges: true },
-      doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
 
-          // state set doc id
-          setDocidDelete(doc.id)
+    const fetchData = async () => {
+      try {
+        // const documentRef = collection(db, 'multiUserBattleRoom', roomiddata);
+        if (!roomiddata) return;
+        const documentRef = await doc(db, 'multiUserBattleRoom', roomiddata);
+        const unsubscribe = onSnapshot(documentRef, { includeMetadataChanges: true }, (doc) => {
+          if (doc.exists && doc.data()) {
+            let battleroom = doc.data()
 
-          let roomid = doc.id
+            // state set doc id
+            setCreatedBy(battleroom.createdBy);
+            setDocidDelete(doc.id)
+            setFireCatId(battleroom.categoryId);
+            let roomid = doc.id
 
-          let user1 = battleroom.user1
+            let user1 = battleroom.user1
+   
+            let user2 = battleroom.user2
 
-          let user2 = battleroom.user2
+            let user3 = battleroom.user3
 
-          let user3 = battleroom.user3
+            let user4 = battleroom.user4
 
-          let user4 = battleroom.user4
+            let user1uid = battleroom.user1.uid
+            let user2uid = battleroom.user2.uid
 
-          let user1uid = battleroom.user1.uid
-          let user2uid = battleroom.user2.uid
+            let user3uid = battleroom.user3.uid
 
-          let user3uid = battleroom.user3.uid
+            let user4uid = battleroom.user4.uid
 
-          let user4uid = battleroom.user4.uid
+            let readytoplay = battleroom.readyToPlay
 
-          let readytoplay = battleroom.readyToPlay
+            // filter user data
 
-          // filter user data
+            // if user id is equal to login id then remove id
+            if (userData?.data?.id === user1uid) {
+              setBattleUserData([user2, user3, user4])
+            }
 
-          // if user id is equal to login id then remove id
-          if (userData?.data?.id === user1uid) {
-            setBattleUserData([user2, user3, user4])
-          }
+            if (userData?.data?.id === user2uid) {
+              setBattleUserData([user1, user3, user4])
+            }
 
-          if (userData?.data?.id === user2uid) {
-            setBattleUserData([user1, user3, user4])
-          }
+            if (userData?.data?.id === user3uid) {
+              setBattleUserData([user1, user2, user4])
+            }
 
-          if (userData?.data?.id === user3uid) {
-            setBattleUserData([user1, user2, user4])
-          }
+            if (userData?.data?.id === user4uid) {
+              setBattleUserData([user1, user2, user3])
+            }
 
-          if (userData?.data?.id === user4uid) {
-            setBattleUserData([user1, user2, user3])
-          }
+            // check ready to play
+            let check = battleroom.readyToPlay
 
-          // check ready to play
-          let check = battleroom.readyToPlay
+            //room code
+            let roomCode = battleroom.roomCode
 
-          //room code
-          let roomCode = battleroom.roomCode
+            // question screen
+            if (check) {
+              questionScreen(roomCode, roomid)
+            }
 
-          // question screen
-          if (check) {
-            questionScreen(roomCode, roomid)
-          }
+            let createdby = battleroom.createdBy
 
-          let createdby = battleroom.createdBy
+            // state popup of create and join room
 
-          // state popup of create and join room
-          if (useruid == createdby) {
-            setJoinUserPopup(false)
-            setPlaywithfriends(true)
+            if (useruid == createdby) {
+              setJoinUserPopup(false)
+              setPlaywithfriends(true)
+            } else {
+              setJoinUserPopup(true)
+              setPlaywithfriends(false)
+            }
+
+            // LoadGroupBattleData("createdby", createdby);
+
+            owner.current.ownerID = createdby
+
+            owner.current.readyplay = readytoplay
+
+            // delete room by owner on click cancel button
+            setCreatedByRoom(createdby)
+
+            if (user2uid === '') {
+              owner.current.ownerID = null
+              setJoinUserPopup(false)
+            }
+
+            const newUser = [user1, user2, user3, user4]
+
+            newUser.forEach(elem => {
+              if (elem.obj === '') {
+                playerremove.current = true
+              }
+            })
           } else {
-            setJoinUserPopup(true)
-            setPlaywithfriends(false)
-          }
-
-          // LoadGroupBattleData("createdby", createdby);
-
-          owner.current.ownerID = createdby
-
-          owner.current.readyplay = readytoplay
-
-          // delete room by owner on click cancel button
-          setCreatedByRoom(createdby)
-
-          if (user2uid === '') {
-            owner.current.ownerID = null
-            setJoinUserPopup(false)
-          }
-
-          const newUser = [user1, user2, user3, user4]
-
-          newUser.forEach(elem => {
-            if (elem.obj === '') {
-              playerremove.current = true
+            if (owner.current.readyplay == false && owner.current.ownerID !== null) {
+              if (useruid !== owner.current.ownerID) {
+                MySwal.fire({
+                  text: t('room_delet_owner')
+                }).then(result => {
+                  if (result.isConfirmed) {
+                    setJoincode("")
+                    navigate.push('/quiz-play')
+                    return false
+                  }
+                })
+              }
             }
-          })
-        } else {
-          if (owner.current.readyplay == false && owner.current.ownerID !== null) {
-            if (useruid !== owner.current.ownerID) {
-              MySwal.fire({
-                text: t('Room is deleted by owner')
-              }).then(result => {
-                if (result.isConfirmed) {
-                  navigate.push('/all-games')
-                  return false
-                }
-              })
-            }
+          }
+        }, (error) => {
+          console.log('Error fetching document:', error);
+        });
+
+        let alluserArray = [
+          groupBattledata.user1uid,
+          groupBattledata.user2uid,
+          groupBattledata.user3uid,
+          groupBattledata.user4uid
+        ]
+        for (let i = 0; i < alluserArray?.length; i++) {
+          const elem = alluserArray[i]
+          if (userData?.data?.id == elem && playerremove) {
+            navigate.push('/quiz-play') // Navigate to the desired page
+
+            unsubscribe()
+            // LoadGroupBattleData("roomid", "");
+            break // Break the loop after calling the cleanup function
           }
         }
-      },
-      error => {
-        console.log('err', error)
+        // Cleanup function
+        return () => {
+          unsubscribe();
+        };
+      } catch (error) {
+        console.log('An error occurred:', error);
       }
-    )
+    };
 
-    let alluserArray = [
-      groupBattledata.user1uid,
-      groupBattledata.user2uid,
-      groupBattledata.user3uid,
-      groupBattledata.user4uid
-    ]
-    for (let i = 0; i < alluserArray?.length; i++) {
-      const elem = alluserArray[i]
-      if (userData?.data?.id == elem && playerremove) {
-        navigate.push('/all-games') // Navigate to the desired page
-
-        unsubscribe()
-        // LoadGroupBattleData("roomid", "");
-        break // Break the loop after calling the cleanup function
-      }
-    }
-
-    return () => {
-      // Cleanup function
-      unsubscribe()
-      // LoadGroupBattleData("roomid", "");
-    }
+    fetchData();
   }, [groupBattledata, userData?.data?.id, playerremove])
 
   // oncancel creater room popup delete room
   const onCancelbuttondeleteBattleRoom = async documentId => {
-    let documentRef = db.collection('multiUserBattleRoom').doc(documentId)
+    let documentRef = doc(db, 'multiUserBattleRoom', documentId);
 
-    documentRef.onSnapshot(
+    onSnapshot(documentRef,
       { includeMetadataChanges: true },
       doc => {
-        if (doc.exists) {
+        if (doc.exists && doc.data()) {
           let battleroom = doc.data()
 
           let roomid = doc.id
@@ -644,8 +662,9 @@ const GroupBattle = () => {
 
           if (useruid == createdby) {
             MySwal.fire({
-              text: t('Room is deleted')
+              text: t('room_deleted')
             })
+            setJoincode("")
             deleteBattleRoom(roomid)
             battleDataClear()
           }
@@ -661,10 +680,10 @@ const GroupBattle = () => {
   const onCanceljoinButton = async roomId => {
     try {
       setJoinUserPopup(false)
-      const documentRef = db.collection('multiUserBattleRoom').doc(roomId)
-      const battleroomSnapshot = await documentRef.get()
+      const documentRef = doc(db, 'multiUserBattleRoom', roomId);
+      const battleroomSnapshot = await getDoc(documentRef)
 
-      if (battleroomSnapshot.exists) {
+      if (battleroomSnapshot.exists && battleroomSnapshot.data()) {
         const battleroom = battleroomSnapshot.data()
         const { user2, user3, user4 } = battleroom
         const { uid: user2uid } = user2
@@ -672,27 +691,30 @@ const GroupBattle = () => {
         const { uid: user4uid } = user4
 
         if (user2uid === useruid) {
-          await documentRef.update({
+          await updateDoc(documentRef, {
             'user2.name': '',
             'user2.uid': '',
             'user2.profileUrl': ''
-          })
+          });
+          setJoincode("")
         } else if (user3uid === useruid) {
-          await documentRef.update({
+          await updateDoc(documentRef, {
             'user3.name': '',
             'user3.uid': '',
             'user3.profileUrl': ''
-          })
+          });
+          setJoincode("")
         } else if (user4uid === useruid) {
-          await documentRef.update({
+          await updateDoc(documentRef, {
             'user4.name': '',
             'user4.uid': '',
             'user4.profileUrl': ''
-          })
+          });
+          setJoincode("")
         }
       }
 
-      navigate.push('/all-games')
+      navigate.push('/quiz-play')
     } catch (error) {
       console.log('Error:', error)
     }
@@ -710,7 +732,7 @@ const GroupBattle = () => {
 
   const handleJoinButtonClick = () => {
     setIsButtonClicked(true)
-    joinRoom(username, userprofile, useruid, inputCode, usercoins)
+    joinRoom(username, userprofile, useruid, joinCode, usercoins)
   }
 
   // share room code popUp handlers
@@ -752,6 +774,15 @@ const GroupBattle = () => {
   const handleTabChange = (key) => {
     setActiveTab(key);
   };
+  useEffect(() => {
+    if (fireCatId !== undefined && category.all !== '') {
+      category.all.map((id) => {
+        if (id.id == fireCatId) {
+          setJoinImg(id.image)
+        }
+      })
+    }
+  }, [fireCatId])
 
   return (
     <>
@@ -763,11 +794,11 @@ const GroupBattle = () => {
             <div className='row morphisam'>
               <div className='col-md-12  col-xl-12 col-xxl-12 col-12 '>
                 <h2 className='text-center tabTitle'>
-                  {activeTab === '1' ? t("create-group-battle") : t("join-group-battle")}
+                  {activeTab === '1' ? `${t('create')} ${t('Group Battle')} ` : `${t('join')} ${t('Group Battle')} `}
                 </h2>
                 <Tabs defaultActiveKey='1' activeKey={activeTab} onChange={handleTabChange}>
 
-                  <TabPane tab={t('Create Room')} key='1' >
+                  <TabPane tab={t('create_room')} key='1' >
                     {/* category select */}
                     {(() => {
                       if (systemconfig.battle_mode_group_category === '1') {
@@ -781,21 +812,20 @@ const GroupBattle = () => {
                                 onChange={e => handleSelectCategory(e)}
                               >
                                 {loading ? (
-                                  <option>{t('Loading...')}</option>
+                                  <option>{t('loading')}</option>
                                 ) : (
                                   <>
                                     {category.all ? (
                                       category.all.map((cat_data, key) => {
-                                        // console.log("",cat_data)
                                         const { category_name } = cat_data
                                         return (
-                                          <option key={key} value={cat_data.key} id={cat_data.id} no_of={cat_data.no_of} name={cat_data.category_name}>
+                                          <option key={key} value={cat_data.key} no_of={cat_data.no_of} name={cat_data.category_name} data={JSON.stringify(cat_data)}>
                                             {category_name}
                                           </option>
                                         )
                                       })
                                     ) : (
-                                      <option>{t('No Category Data Found')}</option>
+                                      <option>{t('no_cat_data_found')}</option>
                                     )}
                                   </>
                                 )}
@@ -808,7 +838,7 @@ const GroupBattle = () => {
 
                     <div className='inner_content d-flex align-items-center flex-wrap'>
                       <span >
-                        {t("Entry Fee")}:
+                        {t("entry_fees")}:
                       </span>
                       <ul className='coins_deduct groupCoinsDeduct d-flex ps-0 align-items-center my-3'>
                         {coinsdata.map((data, idx) => {
@@ -839,33 +869,37 @@ const GroupBattle = () => {
                     {/* coins */}
                     <div className='total_coins my-4 ml-0'>
                       <h5 className=' text-center '>
-                        {t('Current Coins')} : {userData?.data?.coins < 0 ? 0 : userData?.data?.coins}
+                        {t('current_coins')} : {userData?.data?.coins < 0 ? 0 : userData?.data?.coins}
                       </h5>
                     </div>
 
                     {/* create room */}
-                    <div className='create_room'>
-                      <button className='btn btn-primary' onClick={() => searchRoom()}>
-                        {t('Create Room')}
-                      </button>
+                    <div className='create_room'>{
+                      isloading ?
+                        <button className='btn btn-primary loader_div'>
+                          <div class="room_loader"></div>
+                        </button> :
+                        <button className='btn btn-primary' onClick={() => searchRoom()}>
+                          {t('create_room')}
+                        </button>}
                     </div>
                   </TabPane>
-                  <TabPane tab={t('Join Room')} key='2' className='groupBattleTab'>
-                    <h5 className=' mb-4 text-center'>{t('Enter room code here')}</h5>
+                  <TabPane tab={t('join_room')} key='2' className='groupBattleTab'>
+                    <h5 className=' mb-4 text-center'>{t('enter_room_code_here')}</h5>
                     <div className='join_room_code'>
-                      <input
-                        type='text'
-                        placeholder={t('Enter Code')}
-                        onChange={e => handlechange(e)}
-                        className='join_input'
-                        min='0'
-                        ref={inputRef}
+                      <OTPInput
+                        value={joinCode}
+                        onChange={setJoincode}
+                        numInputs={6}
+                        containerStyle={"otpbox"}
+                        renderSeparator={<span className='space'></span>}
+                        renderInput={(props) => <input {...props} className="custom-input-class"></input>}
                       />
                     </div>
                     <div className='join_btn mt-4'>
                       <button className='btn btn-primary' onClick={handleJoinButtonClick} disabled={isButtonClicked}>
                         {' '}
-                        {t('Join Room')}
+                        {t('join_room')}
                       </button>
                     </div>
                   </TabPane>
@@ -881,7 +915,7 @@ const GroupBattle = () => {
       <Modal
         maskClosable={false}
         centered
-        visible={playwithfriends}
+        open={playwithfriends}
         onOk={() => setPlaywithfriends(false)}
         onCancel={() => {
           setPlaywithfriends(false)
@@ -895,17 +929,26 @@ const GroupBattle = () => {
             <div className='randomplayer'>
               <div className='main_screen'>
                 <h3 className='text-center headlineText'>
-                  {t('play-with-friend')}
+                  {t('play_with_friend')}
                 </h3>
                 <div className='room_code_screen'>
-                  <h3>
-                    {shouldGenerateRoomCode}
-                  </h3>
+                  <h6 className='mt-1 mb-3'>{t('game_start_soon')} </h6>
+                  <h3 className='mt-2 mb-3'>{shouldGenerateRoomCode}</h3>
+                  <div className='entry_fees_coins_battle'>{t("entry_fees")} &nbsp;:-&nbsp;<p className='coins_selected'>{` ${selectedCoins.selected} Coins`}</p> </div>
+                  <div className='battle_line_break'></div>
+                  <div className='battle_cat_image_main_div'>
+                    <div className='battle_cat_image'>
+                      {category.category_data.image !== '' ? <Image src={category.category_data.image} width={50} height={50} className='rounded'></Image>
+                        :
+                        <Image src={cat_placeholder_img} width={50} height={50} className='rounded'></Image>}
+                    </div>
+                    <div className='battle_code_bottom_cat'>{category.category_name}</div>
+                  </div>
                   {process.env.NEXT_PUBLIC_SEO === "true" ? <>
                     <span className='shareIcon' onClick={handleSharePopup}>
                       <IoShareSocialOutline />
                     </span>
-                    <p>{t('share-room-code-friends')}</p>
+                    <p>{t('share_rc_frd')}</p>
                   </> : null}
                 </div>
 
@@ -923,11 +966,11 @@ const GroupBattle = () => {
                   }
                 </div>
 
-                <div className='inner_Screen'>
+                <div className='inner_Screen battel_join_carddd'>
                   <div className='user_profile'>
                     <img src={userData?.data?.profile} alt='wrteam' onError={imgError} />
-                    <p className='mt-3 userName'>{userData?.data?.name || userData?.data?.email || userData?.data?.mobile}</p>
-                    <span className='createJoinSpan'>{t("Creator")}</span>
+                    <h5 className='my-3 fw-bold'>{truncate(userData?.data?.name || userData?.data?.email || userData?.data?.mobile, 10)}</h5>
+                    <span className='createJoinSpan'>{t("creator")}</span>
                   </div>
                   {battleUserData?.map((data, index) => {
                     return (
@@ -935,8 +978,8 @@ const GroupBattle = () => {
 
                         <div className='opponent_image' key={index}>
                           <img src={data.profileUrl} alt='wrteam' onError={imgError} />
-                          <p className='mt-3 userName'>{data.name ? data.name : t("Waiting")}</p>
-                          <span className='createJoinSpan'>{t("Joiner")}</span>
+                          <h5 className='my-3  fw-bold'>{truncate(data.name ? data.name : t("waiting"), 10)}</h5>
+                          <span className='createJoinSpan'>{t("joiner")}</span>
                         </div>
                       </>
                     )
@@ -949,7 +992,7 @@ const GroupBattle = () => {
                         {showStart ? (
                           <div className='start_game'>
                             <button className='btn btn-primary' onClick={e => startGame(e)}>
-                              {t('Start Game')}
+                              {t('start_game')}
                             </button>
                           </div>
                         ) : null}
@@ -971,7 +1014,7 @@ const GroupBattle = () => {
           centered
           maskClosable={false}
           keyboard={false}
-          visible={joinuserpopup}
+          open={joinuserpopup}
           onOk={() => setJoinUserPopup(false)}
           onCancel={() => {
             setJoinUserPopup(false)
@@ -983,20 +1026,38 @@ const GroupBattle = () => {
           <>
             <div className='randomplayer'>
               <div className='main_screen'>
-                <div className='inner_Screen'>
+                <div className='text-center headlineText'>{`${t('join')} ${t('Group Battle')} `}</div>
+                <div className='room_code_screen'>
+                  <h6 className='fw-bold mt-1 mb-3'>{t('game_start_soon')}</h6>
+                  <h3 className='mt-2 mb-3'>{roomCodeForJoiner}</h3>
+                  <div className='entry_fees_coins_battle'>{t("entry_fees")}&nbsp;:-&nbsp;<p className='coins_selected'>{EntryFeeCoin}&nbsp; {t("coins")}</p> </div>
+                  <div className='battle_line_break'></div>
+                  <div className='battle_cat_image_main_div'>
+                    <div className='battle_cat_image'>
+                      {joinImage !== '' ? <Image src={joinImage} width={50} height={50} className='rounded'></Image>
+                        :
+                        <Image src={cat_placeholder_img} width={50} height={50} className='rounded'></Image>}
+                    </div>
+                    <div className='battle_code_bottom_cat'>{showCategoryNameOnJoinRoomS}</div>
+                  </div>
+                </div>
+                <div className='inner_Screen battel_join_carddd'>
                   <div className='user_profile'>
                     <img src={userData?.data?.profile} alt='wrteam' onError={imgError} />
-                    <p className='mt-3'>{userData?.data?.name || userData?.data?.email || userData?.data?.mobile}</p>
+                    <h5 className='my-3 fw-bold'>{truncate(userData?.data?.name || userData?.data?.email || userData?.data?.mobile, 12)}</h5>
+
+                    <span className='createJoinSpan fw-bold'>{t("joiner")}</span>
                   </div>
                   {battleUserData?.map((data, index) => {
                     return (
                       <>
-                        <div className='vs_image'>
-                          <img src={vsimg.src} alt='versus' height={100} width={50} />
-                        </div>
                         <div className='opponent_image' key={index}>
                           <img src={data.profileUrl} alt='wrteam' onError={imgError} />
-                          <p className='mt-3'>{data.name ? data.name : t("Waiting")}</p>
+                          <h5 className='my-3 fw-bold'> {truncate(data.name ? data.name : t("waiting"), 10)}</h5>
+                          {
+                            data.uid && createdBy && data.uid == createdBy ?
+                              <span className='fw-bold createJoinSpan adj_size_for_creator'>{t("creator")}</span> : <span className=' fw-bold createJoinSpan'>{t("joiner")}</span>
+                          }
                         </div>
                       </>
                     )

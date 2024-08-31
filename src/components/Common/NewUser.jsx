@@ -17,7 +17,7 @@ import "swiper/css/effect-fade";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-
+import userImg from '../../assets/images/user.svg'
 
 const NewUser = ({ profile, setProfile }) => {
 
@@ -76,10 +76,16 @@ const NewUser = ({ profile, setProfile }) => {
             fcm_id,
             friends_code,
             (success) => {
-                router.push("/all-games");
+                router.push("/quiz-play");
             },
             (error) => {
-                toast.error(error);
+                if (error === "126") {
+                    toast.error(t("ac_deactive"));
+                }else{
+                    toast.error(`${t('Please ')}${t('try_again')}`);
+                    console.log("formSubmit" ,error);
+                    
+                }
             }
         );
         if (profile.image) {
@@ -143,7 +149,7 @@ const NewUser = ({ profile, setProfile }) => {
                                         <h2 className="text-center title pb-3">{t("user_settings")}</h2>
                                         <p className="text-center">{t("upload_your_photo")}</p>
                                         <div className="prop__image">
-                                            <img src={userData?.data && userData?.data?.profile ? userData?.data?.profile : "../../../public/images/user.svg"} alt="profile" id="user_profile" onError={imgError} />
+                                            <img src={userData?.data && userData?.data?.profile ? userData?.data?.profile : userImg.src} alt="profile" id="user_profile" onError={imgError} />
                                             <div className="select__profile">
                                                 <input type="file" name="profile" id="file" onChange={handleImageChange} />
                                                 <label htmlFor="file">
@@ -160,7 +166,7 @@ const NewUser = ({ profile, setProfile }) => {
                                         <div className="dummy_image_slider">
                                             <div className="d-flex select_profile justify-content-center">
                                                 <span className="line"></span>
-                                                <h6 className="py-4">{t("Select Profile Photo")}</h6>
+                                                <h6 className="py-4">{t("select_profile_photo")}</h6>
                                                 <span className="line"></span>
                                             </div>
                                             <Swiper
@@ -194,7 +200,7 @@ const NewUser = ({ profile, setProfile }) => {
 
                                         <div className="card p-4 bottom__card_sec">
                                             <label htmlFor="fullName">
-                                                <input type="text" name="name" id="fullName" placeholder={t("Enter Your Name")} defaultValue={profile.name} onChange={handleChange} required />
+                                                <input type="text" name="name" id="fullName" placeholder={t("enter_name")} defaultValue={profile.name} onChange={handleChange} required />
                                                 <i>
                                                     <FaUserCircle />
                                                 </i>
@@ -218,7 +224,7 @@ const NewUser = ({ profile, setProfile }) => {
                                                 ""
                                             )}
                                             <button className="btn btn-primary text-capitalize" type="submit" value="submit" name="submit" id="mc-embedded-subscribe">
-                                                {t("Submit")}
+                                                {t("submit")}
                                             </button>
                                         </div>
                                     </div>

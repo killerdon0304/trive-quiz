@@ -59,7 +59,7 @@ export const GET_FUN_AND_LEARN_QUESTIONS = "get_fun_n_learn_questions";
 // Guess the Word
 export const GET_GUESS_THE_WORD = "get_guess_the_word";
 
-// Self Learning
+// Self Challenge
 export const GET_QUESTIONS_SELF_CHALLENGE = "get_questions_for_self_challenge";
 
 // Contest Play
@@ -96,9 +96,6 @@ export const UNLOCK_PREMIUM_CATEGORIES = "unlock_premium_category";
 
 // Notifications
 export const GET_NOTIFICATIONS = "get_notifications";
-
-// Sliders
-export const GET_SLIDERS = "get_sliders";
 
 //get language from storage
 const getLanguage = () => {
@@ -238,19 +235,6 @@ export const getLanguagesApi = (id) => {
     }
 };
 
-// 10. get sliders
-export const getSliderApi = () => {
-    let { id: language_id } = getLanguage();
-    return {
-        url: `${GET_SLIDERS}`,
-        method: "POST",
-        data: {
-            language_id: language_id,
-        },
-        authorizationHeader: false,
-    }
-}
-
 // 11. get settings
 export const getSettingsApi = (type) => {
     return {
@@ -280,14 +264,17 @@ export const getSystemConfigurationsApi = () => {
 // 13. get categories
 export const getCategoriesApi = (type, sub_type) => {
     let { id: language_id } = getLanguage();
+    let data = new FormData();
+    data.append("language_id", language_id);
+    data.append("type", type);
+    if (sub_type) {
+        data.append("sub_type", sub_type);
+    }
+
     return {
         url: `${GET_CATEGORIES}`,
         method: "POST",
-        data: {
-            language_id: language_id,
-            type: type,
-            sub_type: sub_type
-        },
+        data,
         authorizationHeader: true,
 
     }
@@ -503,17 +490,20 @@ export const getQuestionsApi = (category_id, subcategory_id, level) => {
 };
 
 // 28. get random questions
-export const getRandomQuestionsApi = (match_id, category, destroy_match) => {
+export const getRandomQuestionsApi = (match_id, category, destroy_match,random) => {
     let { id: language_id } = getLanguage();
+    let data = new FormData();
+    data.append("language_id", language_id);
+    data.append("match_id", match_id);
+    data.append("category", category);
+    data.append("destroy_match", destroy_match);
+    if (random) {
+        data.append("random", random);
+    }
     return {
         url: `${GET_RANDOM_QUESTIONS}`,
         method: "POST",
-        data: {
-            language_id: language_id,
-            match_id: match_id,
-            category: category,  // required if battle category enable form panel
-            destroy_match: destroy_match  // 0 - don't destroy | 1 - destroy the battle
-        },
+        data,
         authorizationHeader: true,
     }
 };
@@ -570,7 +560,7 @@ export const setBookmarkApi = (question_id, bookmark, type) => {
         data: {
             question_id: question_id,
             status: bookmark, //1-bookmark,0-unmark
-            type: type, //1-quiz_zone, 3-guess_the_word, 4-audio_question
+            type: type, //1-Quiz Zone, 3-Guess The Word, 4-audio_question
         },
         authorizationHeader: true,
     }
@@ -582,7 +572,7 @@ export const getBookmarkApi = (type) => {
         url: `${GET_BOOKMARK}`,
         method: "POST",
         data: {
-            type: type, //1-quiz_zone, 3-guess_the_word, 4-audio_question
+            type: type, //1-Quiz Zone, 3-Guess The Word, 4-audio_question
         },
         authorizationHeader: true,
     }
@@ -692,7 +682,7 @@ export const setquizCategoriesApi = (type, category_id, subcategory_id, type_id)
         url: `${SET_QUIZ_CATEGORIES}`,
         method: 'POST',
         data: {
-            type: type,      // 2-fun_n_learn, 3-guess_the_word, 4-audio_question, 5-maths_question
+            type: type,      // 2-fun_n_learn, 3-Guess The Word, 4-audio_question, 5-maths_question
             category: category_id,
             subcategory: subcategory_id,  //{optional}
             type_id: type_id,      // for fun_n_learn_id
@@ -868,13 +858,12 @@ export const getBattleStaticticsApi = (sort, order, offset, limit) => {
 }
 
 // 54. unlock premium ctagoeries
-export const unlockPremiumCategoriesApi = (cat_id, subcat_id) => {
+export const unlockPremiumCategoriesApi = (cat_id) => {
     return {
         url: `${UNLOCK_PREMIUM_CATEGORIES}`,
         method: "POST",
         data: {
             category: cat_id, //required
-            subcategory: subcat_id, //optional
         },
         authorizationHeader: true,
     };

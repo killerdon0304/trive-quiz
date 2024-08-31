@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import PropTypes from 'prop-types'
-import Bookmark from 'src/components/Common/Bookmark'
 import { withTranslation } from 'react-i18next'
 import Timer from "src/components/Common/Timer";
 import {
@@ -11,11 +10,9 @@ import {
   getAndUpdateBookmarkData,
   deleteBookmarkByQuestionID,
   imgError,
-  audioPlay,
   audioPlayGuessthework
 } from 'src/utils'
 import { useDispatch, useSelector } from 'react-redux'
-import { settingsData, sysConfigdata } from 'src/store/reducers/settingsSlice'
 import {
   getusercoinsApi,
   setBadgesApi,
@@ -29,8 +26,9 @@ import Skeleton from 'react-loading-skeleton'
 import { badgesData, LoadNewBadgesData } from 'src/store/reducers/badgesSlice'
 import { LoadQuizZoneCompletedata, percentageSuccess, questionsDataSuceess, selecttempdata } from 'src/store/reducers/tempDataSlice'
 import { useRouter } from 'next/navigation'
-import rightTickIcon from '../../../assets/images/check-circle-score-screen.svg'
-import crossIcon from '../../../assets/images/x-circle-score-screen.svg'
+import QuestionTopSection from 'src/components/view/common/QuestionTopSection'
+import { setSecondSnap, setTotalSecond } from 'src/store/reducers/showRemainingSeconds'
+import { sysConfigdata } from 'src/store/reducers/settingsSlice';
 
 const GuessthewordQuestions = ({
   t,
@@ -39,16 +37,19 @@ const GuessthewordQuestions = ({
   onOptionClick,
   onQuestionEnd,
   showBookmark,
+  isBookmarkPlay
 }) => {
   const [questions, setQuestions] = useState(data)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [corrAns, setCorrAns] = useState(0)
   const [inCorrAns, setInCorrAns] = useState(0)
+  const [answer, setAnswer] = useState('');
   const child = useRef(null)
   const scroll = useRef(null)
 
   // start of logic guess the word
   const [random, setRandom] = useState()
+
   const [input, setInput] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -87,9 +88,27 @@ const GuessthewordQuestions = ({
 
   const navigate = useRouter()
 
-  const answer = questions[currentQuestion].answer
-    ? decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-    : ''
+  useEffect(() => {
+    let decryptedAnswer = ''; // Default value
+
+    if (questions[currentQuestion]?.answer) {
+      // Check if 'ciphertext' exists
+      if (questions[currentQuestion].answer.ciphertext) {
+        // Decrypt the answer
+        decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id);
+      } else {
+        // Use the answer as is
+        decryptedAnswer = questions[currentQuestion].answer;
+      }
+    }
+    // Update the state with the decrypted or original answer
+    setAnswer(decryptedAnswer);
+  }, [questions, currentQuestion, decryptAnswer, userData]);
+
+
+  function handleBookmarkSubmit() {
+    setNextQuestion()
+  }
 
   //suffle answer
   const shuffle = arr => {
@@ -134,7 +153,6 @@ const GuessthewordQuestions = ({
     let newstr = str.join('')
     return newstr
   }
-
   //focus input
   const useActiveElement = () => {
     const [active, setActive] = useState(document.activeElement)
@@ -239,11 +257,11 @@ const GuessthewordQuestions = ({
   const handleHints = e => {
     let coins = guess_the_word_max_winning_coin && Number(guess_the_word_max_winning_coin)
     if (coninsUpdate === '0') {
-      toast.error(t('you dont have enough coins'))
+      toast.error(t('no_enough_coins'))
       return false
     }
     if (userData?.data?.coins < coins) {
-      toast.error(t("You Don't have enough coins"))
+      toast.error(t("no_enough_coins"))
       return false
     }
 
@@ -258,6 +276,7 @@ const GuessthewordQuestions = ({
       ind = shuffle(enabledBtnId)[0]
     }
     random.map((val, i) => {
+
       if (val.ansIndex == ind) {
         if (!document.getElementById(`btn-${i}`).disabled) {
           val.ansIndex, document.getElementById(`btn-${i}`).innerText
@@ -275,24 +294,22 @@ const GuessthewordQuestions = ({
           e.currentTarget.disabled = hintDisabled >= Number(guess_the_word_max_hints_counter) ? true : false
 
           if (userData?.data?.coins < coins) {
-            toast.error(t("You Don't have enough coins"))
+            toast.error(t("no_enough_coins"))
             return false
           }
           let status = 1
-          UserCoinScoreApi(
-            '-' + coins,
-            null,
-            null,
-            'Used Guesstheword Hint',
-            status,
-            response => {
+          UserCoinScoreApi({
+            coins: '-' + coins,
+            title: t('used_guesstheword_hint'),
+            status: status,
+            onSuccess: response => {
               updateUserDataInfo(response.data)
             },
-            error => {
-              Swal.fire(t('OOps'), t('Please Try again'), 'error')
+            onError: error => {
+              Swal.fire(t('ops'), t('Please '), t("try_again"), 'error')
               console.log(error)
             }
-          )
+          })
         }
       }
     })
@@ -318,6 +335,11 @@ const GuessthewordQuestions = ({
     document.getElementById('hntBtn').disabled = false
     clearallInput()
     guessthewordCheck(inputstr)
+    let seconds = child.current.getMinuteandSeconds()
+
+    dispatch(setTotalSecond(timerSeconds))
+    dispatch(setSecondSnap(seconds))
+
   }
 
   // end of logic guess the word
@@ -331,7 +353,7 @@ const GuessthewordQuestions = ({
 
     if (nextQuestion < questions?.length) {
       setCurrentQuestion(nextQuestion)
-      child.current.resetTimer()
+      { child.current !== null && child.current.resetTimer() }
       clearallInput()
     } else {
       let coins = null
@@ -339,16 +361,16 @@ const GuessthewordQuestions = ({
       let result_score = Score.current;
       let percentage = (100 * result_score) / questions?.length
 
-      UserStatisticsApi(
-        questions?.length,
-        result_score,
-        questions[currentQuestion].category,
-        percentage,
-        response => { },
-        error => {
+      UserStatisticsApi({
+        questions_answered: questions?.length,
+        correct_answers: result_score,
+        category_id: questions[currentQuestion].category,
+        percentage: percentage,
+        onSuccess: response => { },
+        onError: error => {
           console.log(error)
         }
-      )
+      })
 
       userScore = await calculateScore(result_score, questions?.length, systemconfig?.guess_the_word_correct_answer_credit_score, systemconfig?.guess_the_word_wrong_answer_deduct_score)
       // console.log("userScore",userScore,result_score,questions?.length,systemconfig?.guess_the_word_correct_answer_credit_score,systemconfig?.guess_the_word_wrong_answer_deduct_score)
@@ -358,35 +380,32 @@ const GuessthewordQuestions = ({
         // console.log("questions",Score.current, questions?.length)
         coins = await calculateCoins(Score.current, questions?.length)
         if (getData.is_play === "0") {
-          UserCoinScoreApi(
-            coins,
-            userScore,
-            null,
-            'GuesstheWord Quiz Win',
-            status,
-            response => {
+          UserCoinScoreApi({
+            coins: coins,
+            Score: userScore,
+            title: `${t('Guess The Word')} ${t('quiz_win')} `,
+            status: status,
+            onSuccess: response => {
               updateUserDataInfo(response.data)
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         }
       } else {
         if (getData.is_play === "0") {
-          UserCoinScoreApi(
-            null,
-            userScore,
-            null,
-            'GuesstheWord Quiz Win',
-            status,
-            response => {
+          UserCoinScoreApi({
+            score: userScore,
+            title: `${t('Guess The Word')} ${t('quiz_win')} `,
+            status: status,
+            onSuccess: response => {
               updateUserDataInfo(response.data)
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         }
       }
       await onQuestionEnd(coins, userScore)
@@ -394,27 +413,24 @@ const GuessthewordQuestions = ({
       // set quiz categories
       if (getData.is_play === '0') {
         if (getData.maincat_id && getData.id) {
-          setQuizCategoriesApi(
-            3,
-            getData.maincat_id,
-            getData.id,
-            '',
-            success => { },
-            error => {
+          setQuizCategoriesApi({
+            type: 3,
+            category_id: getData.maincat_id,
+            subcategory_id: getData.id,
+            onSuccess: success => { },
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         } else {
-          setQuizCategoriesApi(
-            3,
-            getData.id,
-            '',
-            '',
-            success => { },
-            error => {
+          setQuizCategoriesApi({
+            type: 3,
+            category_id: getData.id,
+            onSuccess: success => { },
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         }
       }
     }
@@ -423,16 +439,15 @@ const GuessthewordQuestions = ({
   //guesstheword answer click
   const guessthewordCheck = selected_option => {
     let { id, answer } = questions[currentQuestion]
-
     let decryptedAnswer = decryptAnswer(answer, userData?.data?.firebase_id).toUpperCase().replaceAll(/\s/g, '')
     let result_score = Score.current
     if (decryptedAnswer === selected_option) {
       result_score++;
       Score.current = result_score
       setCorrAns(corrAns + 1)
-      toast.success(t('correct-answer'))
+      toast.success(t('correct_answer'))
     } else {
-      toast.error(t('incorrect-answer'))
+      toast.error(t('incorrect_answer'))
       setInCorrAns(inCorrAns + 1)
     }
 
@@ -469,13 +484,13 @@ const GuessthewordQuestions = ({
 
     if (isBookmarked) bookmark = '1'
     else bookmark = '0'
-    return setbookmarkApi(
-      question_id,
-      bookmark,
-      type,
-      response => {
+    return setbookmarkApi({
+      question_id: question_id,
+      bookmark: bookmark,
+      type: type,
+      onSuccess: response => {
         if (response.error) {
-          toast.error(t('Cannot Remove Question from Bookmark'))
+          toast.error(t('not_remove_que'))
           return false
         } else {
           if (isBookmarked) {
@@ -486,10 +501,10 @@ const GuessthewordQuestions = ({
           return true
         }
       },
-      error => {
+      onError: error => {
         console.error(error)
       }
-    )
+    })
   }
 
   const onTimerExpire = () => {
@@ -513,26 +528,24 @@ const GuessthewordQuestions = ({
           LoadNewBadgesData('super_sonic', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            super_sonic_coin,
-            null,
-            null,
-            t('super sonic badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: super_sonic_coin,
+            title: t('super_sonic_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -551,45 +564,11 @@ const GuessthewordQuestions = ({
   }, [corrAns, inCorrAns])
   return (
     <>
-      <div className='dashboardPlayUppDiv selfLearnQuestionsUpperDiv guessWordQuestionsUpperDiv text-end p-2 pb-0'>
-        <div className="leftSec">
-          <div className="coins">
-            <span>{t("Coins")} : {userData?.data?.coins}</span>
-          </div>
-
-          <div className="rightWrongAnsDiv">
-            <span className='rightAns'>
-              <img src={rightTickIcon.src} alt="" />
-              {corrAns}
-            </span>
-
-            <span className='wrongAns'>
-              <img src={crossIcon.src} alt="" />
-              {inCorrAns}
-            </span>
-          </div>
-        </div>
-
-        <div className="rightSec">
-          <div className="rightWrongAnsDiv correctIncorrect">
-            <span className='rightAns'>
-              {currentQuestion + 1} - {questions?.length}</span>
-          </div>
-          <div className="p-2 pb-0">
-            {showBookmark ? (
-              <Bookmark
-                id={questions[currentQuestion].id}
-                isBookmarked={questions[currentQuestion].isBookmarked ? questions[currentQuestion].isBookmarked : false}
-                onClick={handleBookmarkClick}
-              />
-            ) : (
-              ''
-            )}
-          </div>
-        </div>
-      </div>
+      {!isBookmarkPlay && <div className='dashboardPlayUppDiv selfLearnQuestionsUpperDiv guessWordQuestionsUpperDiv aaazzz text-end p-2 pb-0'>
+        <QuestionTopSection corrAns={corrAns} inCorrAns={inCorrAns} currentQuestion={currentQuestion} questions={questions} showBookmark={showBookmark} handleBookmarkClick={handleBookmarkClick} showAnswers={true} />
+      </div>}
       <div className='questions guessthewordque' ref={scroll}>
-        <div className="timerWrapper">
+        <div className={isBookmarkPlay ? 'd-none' : "timerWrapper"}>
           <div className='inner__headerdash'>
             <div className='inner__headerdash'>
               {questions && questions[0]['id'] !== '' ? (
@@ -604,7 +583,7 @@ const GuessthewordQuestions = ({
 
 
         <div className='content__text'>
-          <p className='question-text pt-4'>{questions[currentQuestion].question}</p>
+          <p className='question-text py-4'>{questions[currentQuestion].question}</p>
         </div>
 
         {questions[currentQuestion].image ? (
@@ -666,10 +645,10 @@ const GuessthewordQuestions = ({
               <div className='divider'>
                 <hr style={{ width: '112%', backgroundColor: 'gray', height: '2px' }} />
               </div>
-              <div className='bottom_button dashoptions mb-4 guessTheWordOtions'>
+              {!isBookmarkPlay && <div className='bottom_button dashoptions mb-4 guessTheWordOtions'>
                 <div className='clear_input'>
                   <button className='btn btn-primary' onClick={e => backinputclear(e)}>
-                    {t("Back")}
+                    {t("back")}
                   </button>
                 </div>
                 <div className='hint_button'>
@@ -679,15 +658,22 @@ const GuessthewordQuestions = ({
                     disabled={btndisabled ? true : false}
                     onClick={e => handleHints(e)}
                   >
-                    {t('Hint')}
+                    {t('hint')}
                   </button>
                 </div>
                 <div className='submit_button'>
                   <button className='btn btn-primary' onClick={() => handleSubmit()}>
-                    {t('Submit')}
+                    {t('submit')}
                   </button>
                 </div>
-              </div>
+              </div>}
+              {isBookmarkPlay &&
+                <div className='bottom_button dashoptions mb-4 guessTheWordOtions'>
+                  <button className='btn btn-primary' onClick={() => handleBookmarkSubmit()}>
+                    {t('submit')}
+                  </button>
+                </div>
+              }
             </div>
           </>
         )}

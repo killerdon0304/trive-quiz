@@ -3,10 +3,12 @@ import { t } from 'i18next'
 import { useRouter } from 'next/router'
 import { useSelector } from 'react-redux'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
-import LatextReviewAnswer from 'src/components/Common/LatextReviewAnswer'
 import dynamic from 'next/dynamic'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 import { questionsData } from 'src/store/reducers/tempDataSlice'
+import { Suspense } from 'react'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
+const ReviewAnswer = dynamic(() => import('src/components/Common/ReviewAnswer'), { ssr: false })
 
 const Index = () => {
 
@@ -20,19 +22,22 @@ const Index = () => {
 
   return (
     <Layout>
-      <Breadcrumb title={t('Daily Quiz')} content="" contentTwo="" />
+      <Breadcrumb title={`${t('daily')} ${t('quiz')}`} content="" contentTwo="" />
       <div className='dashboard'>
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
-                <LatextReviewAnswer
-                  showLevel={false}
-                  reviewlevel={false}
-                  reportquestions={true}
-                  questions={questions}
-                  goBack={handleReviewAnswerBack}
-                />
+              <div className='whitebackground'>
+                <Suspense fallback={<QuestionSkeleton />}>
+                  <ReviewAnswer
+                    showLevel={false}
+                    reviewlevel={false}
+                    reportquestions={true}
+                    questions={questions}
+                    latex={true}
+                    goBack={handleReviewAnswerBack}
+                  />
+                </Suspense>
               </div>
             </div>
           </div>

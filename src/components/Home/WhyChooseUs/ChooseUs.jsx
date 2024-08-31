@@ -2,6 +2,7 @@
 import { truncate } from 'src/utils'
 import titleline from '../../../assets/images/title-line.svg'
 import { withTranslation } from 'react-i18next'
+import LineFooterForTitle from 'src/components/Common/LineFooterForTitle'
 
 const ChooseUs = (props) => {
   const data = [
@@ -33,9 +34,7 @@ const ChooseUs = (props) => {
             <div className='row'>
               <div className='head_title'>
                 <h2>{props?.homeSettings?.section1_heading}</h2>
-                <div className='image'>
-                  <img src={titleline.src} alt='line' />
-                </div>
+                <LineFooterForTitle />
               </div>
             </div>
             <div className='choose_us_inner'>
@@ -47,10 +46,10 @@ const ChooseUs = (props) => {
                         <img src={elem.image} alt='line' />
                       </div>
                       <div className='title'>
-                        <h3>{truncate(elem.title,19)}</h3>
+                        <h3>{truncate(elem.title, 19)}</h3>
                       </div>
                       <div className='desc'>
-                        <p>{truncate(elem.desc,115)}</p>
+                        <p>{truncate(elem.desc, 115)}</p>
                       </div>
                     </div>
                   </div>

@@ -2,10 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import PropTypes from 'prop-types'
-import Bookmark from './Bookmark'
 import Lifelines from './Lifelines'
 import { withTranslation } from 'react-i18next'
-import ProgressBar from 'react-bootstrap/ProgressBar';
 
 import {
   decryptAnswer,
@@ -13,11 +11,8 @@ import {
   calculateCoins,
   getAndUpdateBookmarkData,
   deleteBookmarkByQuestionID,
-  imgError,
   showAnswerStatusClass,
   audioPlay,
-  playAudio,
-  RenderHtmlContent
 } from 'src/utils'
 import { useDispatch, useSelector } from 'react-redux'
 import {
@@ -32,10 +27,11 @@ import {
 import { badgesData, LoadNewBadgesData } from 'src/store/reducers/badgesSlice'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
 import { updateUserDataInfo } from 'src/store/reducers/userSlice'
-import rightTickIcon from 'src/assets/images/check-circle-score-screen.svg'
-import crossIcon from 'src/assets/images/x-circle-score-screen.svg'
 import { LoadQuizZoneCompletedata, LoadQuizZonepercentage, percentageSuccess, questionsDataSuceess } from 'src/store/reducers/tempDataSlice'
 import Timer from './Timer'
+import QuestionTopSection from '../view/common/QuestionTopSection'
+import QuestionMiddleSectionOptions from '../view/common/QuestionMiddleSectionOptions'
+import { setSecondSnap, setTotalSecond } from 'src/store/reducers/showRemainingSeconds'
 
 const Question = ({
   t,
@@ -63,6 +59,8 @@ const Question = ({
   const systemconfig = useSelector(sysConfigdata)
 
   const Badges = useSelector(badgesData)
+
+  const totalSecond = useSelector(state => state.showSeconds.totalSecond)
 
   const dispatch = useDispatch()
 
@@ -108,79 +106,84 @@ const Question = ({
       let userScore = null
       let result_score = Score.current
       let percentage = (100 * result_score) / questions?.length
-      UserStatisticsApi(
-        questions?.length,
-        result_score,
-        questions[currentQuestion].category,
-        percentage,
-        response => { },
-        error => {
+      UserStatisticsApi({
+
+        questions_answered: questions?.length,
+        correct_answers: result_score,
+        category_id: questions[currentQuestion].category,
+        percentage: percentage,
+        onSuccess: response => { },
+        onError: error => {
           console.log(error)
         }
-      )
+      })
       userScore = await calculateScore(result_score, questions?.length, systemconfig?.quiz_zone_correct_answer_credit_score, systemconfig?.quiz_zone_wrong_answer_deduct_score)
-      // console.log("userscore",userScore)
+
       let status = '0'
       if (percentage >= Number(systemconfig.quiz_winning_percentage)) {
         coins = await calculateCoins(Score.current, questions?.length)
         if (unlockedLevel <= currentLevel) {
           LoadQuizZonepercentage(true)
 
-          UserCoinScoreApi(
-            coins,
-            userScore,
-            null,
-            'Quiz Zone Win',
-            status,
-            response => {
+          UserCoinScoreApi({
+            coins: coins,
+            score: userScore,
+            title: 'Quiz Zone Win',
+            status: status,
+            onSuccess: response => {
               updateUserDataInfo(response.data)
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         } else {
           LoadQuizZonepercentage(false)
         }
         // get level data api
-        levelDataApi(
-          questions[currentQuestion].category_slug,
-          questions[currentQuestion].subcategory_slug,
-          response => {
+        levelDataApi({
+          category_id: questions[currentQuestion].category_slug,
+          subcategory_id: questions[currentQuestion].subcategory_slug,
+          onSuccess: response => {
             if (parseInt(response.data.level) <= parseInt(questions[currentQuestion].level)) {
               // set level data api
-              leveldataApi(
-                questions[currentQuestion].category,
-                questions[currentQuestion].subcategory,
-                parseInt(questions[currentQuestion].level) + 1,
-                response => { },
-                error => {
+              leveldataApi({
+                category_id: questions[currentQuestion].category,
+                subcategory_id: questions[currentQuestion].subcategory,
+                level: parseInt(questions[currentQuestion].level) + 1,
+                onSuccess: response => { },
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             }
           },
-          error => {
+          onError: error => {
             console.log(error)
           }
-        )
+        })
       } else {
-        UserCoinScoreApi(
-          null,
-          userScore,
-          null,
-          'Quiz Zone Win',
-          status,
-          response => {
+        UserCoinScoreApi({
+          score: userScore,
+          title: 'Quiz Zone Win',
+          status: status,
+          onSuccess: response => {
             updateUserDataInfo(response.data)
           },
-          error => {
+          onError: error => {
             console.log(error)
           }
-        )
+        })
       }
+      
       dispatch(questionsDataSuceess(questions));
-      await onQuestionEnd(coins, userScore)
+      let questionsLength
+      if (skipQuestionClicked.current === true) {
+        questionsLength = questions.length - 1
+      }else{
+        questionsLength = questions.length 
+      }
+      await onQuestionEnd(coins, userScore,questionsLength)
 
 
       braniaBadge()
@@ -192,26 +195,24 @@ const Question = ({
             LoadNewBadgesData('dashing_debut', '1')
             toast.success(t(res?.data?.notification_body))
             const status = 0
-            UserCoinScoreApi(
-              dashing_debut_coin,
-              null,
-              null,
-              t('dashing debut reward'),
-              status,
-              response => {
-                getusercoinsApi(
-                  responseData => {
+            UserCoinScoreApi({
+              coins: dashing_debut_coin,
+              title: t('dashing_debut_reward'),
+              status: status,
+              onSuccess: response => {
+                getusercoinsApi({
+                  onSuccess: responseData => {
                     updateUserDataInfo(responseData.data)
                   },
-                  error => {
+                  onError: error => {
                     console.log(error)
                   }
-                )
+                })
               },
-              error => {
+              onError: error => {
                 console.log(error)
               }
-            )
+            })
           },
           error => {
             console.log(error)
@@ -223,6 +224,7 @@ const Question = ({
 
   // button option answer check
   const handleAnswerOptionClick = selected_option => {
+
     if (!answeredQuestions.hasOwnProperty(currentQuestion)) {
       addAnsweredQuestion(currentQuestion)
       let { id, answer } = questions[currentQuestion]
@@ -251,7 +253,7 @@ const Question = ({
       newObj[currentQuestion].isAnswered = true
 
 
-      // console.log(typeof(questions))?
+   
       setQuestions(newObj)
 
       setTimeout(() => {
@@ -259,6 +261,11 @@ const Question = ({
       }, 1000)
       dispatch(percentageSuccess(result_score))
     }
+    let seconds = child.current.getMinuteandSeconds()
+
+    dispatch(setTotalSecond(timerSeconds))
+    dispatch(setSecondSnap(seconds))
+
 
   }
 
@@ -268,7 +275,6 @@ const Question = ({
     const queEnddataIncorrect = inCorrAns;
 
     LoadQuizZoneCompletedata(queEnddatacorrect, queEnddataIncorrect)
-
   }, [corrAns, inCorrAns])
 
   // option answer status check
@@ -286,13 +292,13 @@ const Question = ({
     if (isBookmarked) bookmark = '1'
     else bookmark = '0'
 
-    return setbookmarkApi(
-      question_id,
-      bookmark,
-      type,
-      response => {
+    return setbookmarkApi({
+      question_id: question_id,
+      bookmark: bookmark,
+      type: type,
+      onSuccess: response => {
         if (response.error) {
-          toast.error(t('Cannot Remove Question from Bookmark'))
+          toast.error(t('not_remove_que'))
           return false
         } else {
           if (isBookmarked) {
@@ -303,19 +309,19 @@ const Question = ({
           return true
         }
       },
-      error => {
+      onError: error => {
         console.error(error)
       }
-    )
+    })
   }
 
   const handleFiftyFifty = () => {
 
     fiftyFiftyClicked.current = true
 
-    let update_questions = [...questions]
+    let update_questions = [...questions,]
     if (update_questions[currentQuestion].question_type === '2') {
-      toast.error(t('This Lifeline is not allowed'))
+      toast.error(t('lifeline_not_allowed'))
       return false;
     }
     let all_option = ['optiona', 'optionb', 'optionc', 'optiond', 'optione']
@@ -387,7 +393,7 @@ const Question = ({
       all_option = ['a', 'b']
     } else {
       all_option = ['a', 'b', 'c', 'd']
-      if (systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione) {
+      if (questions[currentQuestion].optione) {
         if (optione !== "") {
           all_option.push("e");
         }
@@ -425,7 +431,6 @@ const Question = ({
     }
     setNextQuestion()
   }
-
   const onTimerExpire = () => {
     setNextQuestion()
     setInCorrAns(inCorrAns + 1)
@@ -459,26 +464,24 @@ const Question = ({
           LoadNewBadgesData('brainiac', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            brainiac_coin,
-            null,
-            null,
-            t('brainiac reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: brainiac_coin,
+            title: t('brainiac_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -489,42 +492,8 @@ const Question = ({
 
   return (
     <React.Fragment>
-      <div className='dashboardPlayUppDiv text-end p-2 pb-0'>
-
-        <div className="leftSec">
-          <div className="coins">
-            <span>{t("Coins")} : {userData && userData?.data?.coins}</span>
-          </div>
-
-          <div className="rightWrongAnsDiv">
-            <span className='rightAns'>
-              <img src={rightTickIcon.src} alt="" />
-              {corrAns}
-            </span>
-
-            <span className='wrongAns'>
-              <img src={crossIcon.src} alt="" />
-              {inCorrAns}
-            </span>
-          </div>
-        </div>
-
-        <div className="rightSec">
-          <div className="rightWrongAnsDiv correctIncorrect">
-            <span className='rightAns'>
-              {currentQuestion + 1} - {questions?.length}</span>
-          </div>
-          {showBookmark ? (
-            <Bookmark
-              id={questions[currentQuestion].id}
-              isBookmarked={questions[currentQuestion].isBookmarked ? questions[currentQuestion].isBookmarked : false}
-              onClick={handleBookmarkClick}
-            />
-          ) : (
-            ''
-          )}
-        </div>
-
+      <div className='dashboardPlayUppDiv text-end p-2 pb-0 '>
+        <QuestionTopSection corrAns={corrAns} inCorrAns={inCorrAns} currentQuestion={currentQuestion} questions={questions} showBookmark={showBookmark} handleBookmarkClick={handleBookmarkClick} showAnswers={true} />
       </div>
       <div className='questions' ref={scroll}>
         <div className="timerWrapper">
@@ -532,7 +501,7 @@ const Question = ({
           {showQuestions ? (
             <div className='levelNumbr'>
               <h5 className='levelText'>
-                {t('Level')} : {questions[currentQuestion].level}
+                {t('level')} : {questions[currentQuestion].level}
               </h5>
             </div>
           ) : (
@@ -549,161 +518,8 @@ const Question = ({
           </div>
         </div>
 
+        <QuestionMiddleSectionOptions questions={questions} currentQuestion={currentQuestion} setAnswerStatusClass={setAnswerStatusClass} handleAnswerOptionClick={handleAnswerOptionClick} probability={true} latex={true} />
 
-        <div className='content__text'>
-          <p className='question-text'><RenderHtmlContent htmlContent={questions[currentQuestion]?.question} /></p>
-        </div>
-
-        {questions[currentQuestion].image ? (
-          <div className='imagedash'>
-            <img src={questions[currentQuestion].image} onError={imgError} alt='' />
-          </div>
-        ) : (
-          ''
-        )}
-
-        {/* options */}
-        <div className='row optionsWrapper'>
-          {questions[currentQuestion].optiona ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('a')}`}
-                  onClick={e => handleAnswerOptionClick('a')}
-                >
-                  <div className='row'>
-                    <div className='col'><RenderHtmlContent htmlContent={questions[currentQuestion]?.optiona} /></div>
-
-                  </div>
-                </button>
-              </div>
-              {questions[currentQuestion].probability_a ? (
-                <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_a}
-                  <div className="progressBarWrapper">
-                    <ProgressBar now={questions[currentQuestion].probability_a.replace('%', '')} visuallyHidden />;
-                  </div></div>
-              ) : (
-                ''
-              )}
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].optionb ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('b')}`}
-                  onClick={e => handleAnswerOptionClick('b')}
-                >
-                  <div className='row'>
-                    <div className='col'><RenderHtmlContent htmlContent={questions[currentQuestion]?.optionb} /></div>
-
-                  </div>
-                </button>
-
-              </div>
-              {questions[currentQuestion].probability_b ? (
-                <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_b}
-                  <div className="progressBarWrapper">
-                    <ProgressBar now={questions[currentQuestion].probability_b.replace('%', '')} visuallyHidden />;
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].question_type === '1' ? (
-            <>
-              {questions[currentQuestion].optionc ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('c')}`}
-                      onClick={e => handleAnswerOptionClick('c')}
-                    >
-                      <div className='row'>
-                        <div className='col'><RenderHtmlContent htmlContent={questions[currentQuestion]?.optionc} /></div>
-
-                      </div>
-                    </button>
-                  </div>
-                  {questions[currentQuestion].probability_c ? (
-                    <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_c}
-                      <div className="progressBarWrapper">
-                        <ProgressBar now={questions[currentQuestion].probability_c.replace('%', '')} visuallyHidden />;
-                      </div></div>
-                  ) : (
-                    ''
-                  )}
-                </div>
-              ) : (
-                ''
-              )}
-              {questions[currentQuestion].optiond ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('d')}`}
-                      onClick={e => handleAnswerOptionClick('d')}
-                    >
-                      <div className='row'>
-                        <div className='col'><RenderHtmlContent htmlContent={questions[currentQuestion]?.optiond} /></div>
-
-                      </div>
-                    </button>
-
-                  </div>
-                  {questions[currentQuestion].probability_d ? (
-                    <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_d}
-                      <div className="progressBarWrapper">
-                        <ProgressBar now={questions[currentQuestion].probability_d.replace('%', '')} visuallyHidden />
-                      </div>
-                    </div>
-                  ) : (
-                    ''
-                  )}
-                </div>
-              ) : (
-                ''
-              )}
-
-              {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
-                <div className='row d-flex justify-content-center mob_resp_e'>
-                  <div className='col-md-6 col-12'>
-                    <div className='inner__questions'>
-                      <button
-                        className={`btn button__ui w-100 ${setAnswerStatusClass('e')}`}
-                        onClick={e => handleAnswerOptionClick('e')}
-                      >
-                        <div className='row'>
-                          <div className='col'><RenderHtmlContent htmlContent={questions[currentQuestion]?.optione} /></div>
-
-                        </div>
-                      </button>
-                    </div>
-                    {questions[currentQuestion].probability_e ? (
-                      <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_e}
-                        <div className="progressBarWrapper">
-                          <ProgressBar now={questions[currentQuestion].probability_e.replace('%', '')} visuallyHidden />
-                        </div>
-                      </div>
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-            </>
-          ) : (
-            ''
-          )}
-        </div>
         {showLifeLine ? (
           <>
 

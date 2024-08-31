@@ -20,6 +20,7 @@ import warningImg from 'src/assets/images/logout.svg'
 import deleteAccImg from 'src/assets/images/deleteAcc.svg'
 import logouttabImg from "src/assets/images/logout-tab.svg"
 import DeleteImg from "src/assets/images/Delete.svg"
+import { signOut } from 'firebase/auth'
 
 const LeftTabProfile = () => {
 
@@ -46,7 +47,7 @@ const LeftTabProfile = () => {
 
     const handleConfirmLogout = () => {
         logout()
-        auth.signOut()
+        signOut(auth)
         router.push('/')
         setLogoutModal(false)
     }
@@ -54,7 +55,7 @@ const LeftTabProfile = () => {
     const handleConfirmDeleteAcc = () => {
         deleteuserAccountApi({
             onSuccess: () => {
-                Swal.fire(t('Deleted'), t('Account Deleted Successfully!'), 'success')
+                Swal.fire(t('deleted'), t('Account Deleted Successfully!'), 'success')
                 // Current signed-in user to delete
                 const firebaseUser = auth.currentUser
                 firebaseUser
@@ -66,15 +67,15 @@ const LeftTabProfile = () => {
                         console.log(error)
                     })
                 logout()
-                auth.signOut()
+                signOut(auth)
                 router.push('/')
                 setDeleteAccModal(false)
             },
             onError: (error) => {
                 if (demoValue) {
-                    Swal.fire(t('OOps'), t('Not allowed in demo version'))
+                    Swal.fire(t('ops'), t('Not allowed in demo version'))
                 } else {
-                    Swal.fire(t('OOps'), t('Please Try again'), 'error')
+                    Swal.fire(t('ops'), t('Please '), t("try_again"), 'error')
                 }
             }
         }
@@ -96,56 +97,56 @@ const LeftTabProfile = () => {
                     <span>
                         <img src={userSettingIcon.src} alt="profile" className='profileTabIcon' />
                     </span>
-                    <span> {t('Profile')}</span>
+                    <span> {t('profile')}</span>
                 </div>
                 <div className={`tab-header ${path === '/profile/statistics' ? 'active' : ''}`} onClick={() => router.push("/profile/statistics")}>
                     <span><img src={statisticsIcon.src} alt="statistics" /></span>
-                    <span> {t('Statistics')}</span>
+                    <span> {t('statistics')}</span>
                 </div>
 
                 <div className={`tab-header ${path === '/profile/bookmark' ? 'active' : ''}`} onClick={() => router.push("/profile/bookmark")}>
                     <span><img src={bookmarkIcon.src} alt="bookmark" className='bookmarkIcon' /> </span>
-                    <span>{t('Bookmark')}</span>
+                    <span>{t('bookmark')}</span>
                 </div>
 
                 <div className={`tab-header ${path === '/profile/badges' ? 'active' : ''}`} onClick={() => router.push("/profile/badges")} >
                     <span><img src={badgesIcon.src} alt="badges" /></span>
-                    <span>{t('Badges')}</span>
+                    <span>{t('badges')}</span>
                 </div>
 
                 <div className={`tab-header ${path === '/profile/leaderboard' ? 'active' : ''}`} onClick={() => router.push("/profile/leaderboard")} >
                     <span><img src={leaderboardIcon.src} alt="leaderboard" /></span>
-                    <span>{t('LeaderBoard')}</span>
+                    <span>{t('leader_board')}</span>
                 </div>
 
                 <div className={`tab-header ${path === '/profile/coin-history' ? 'active' : ''}`} onClick={() => router.push("/profile/coin-history")}>
                     <span><img src={coinIcon.src} alt="coin-history" /></span>
-                    <span>{t('Coin History')}</span>
+                    <span>{t('coin_history')}</span>
                 </div>
                 {systemconfig?.payment_mode === "1" ?
                     <div className={`tab-header ${path === '/profile/wallet' ? 'active' : ''}`} onClick={() => router.push("/profile/wallet")}>
                         <span><img src={walletIcon.src} alt="wallet" /></span>
-                        <span> {t('Wallet')}</span>
+                        <span> {t('wallet')}</span>
                     </div>
                     : null}
                 <div className={`tab-header ${path === '/profile/invite-friends' ? 'active' : ''}`} onClick={() => router.push("/profile/invite-friends")}>
                     <span><img src={inviteIcon.src} alt="invite-friends" /></span>
-                    <span> {t('Invite Friends')} </span>
+                    <span> {t('invite_friends')} </span>
                 </div>
                 <div className="tab-header" onClick={(e) => handleSignout(e)}>
                     <span><img src={logouttabImg.src} alt="invite-friends" /></span>
-                    <span> {t('logout-account')} </span>
+                    <span> {t('logout_account')} </span>
                 </div>
                 <div className="tab-header" onClick={(e) => deleteAccountClick(e)}>
                     <span><img src={DeleteImg.src} alt="invite-friends" /></span>
-                    <span> {t('Delete Account')} </span>
+                    <span> {t('delete_account')} </span>
                 </div>
             </div >
 
             <Modal
                 maskClosable={false}
                 centered
-                visible={logoutModal}
+                open={logoutModal}
                 onOk={() => setLogoutModal(false)}
                 onCancel={() => {
                     setLogoutModal(false)
@@ -155,20 +156,20 @@ const LeftTabProfile = () => {
             >
                 <div className="logoutWrapper">
                     <span><img src={warningImg.src} alt="" /></span>
-                    <span className='headline'>{t("Logout!")}</span>
-                    <span className='confirmMsg'>{t("Are you sure you want to")}</span>
+                    <span className='headline'>{t("logout")}</span>
+                    <span className='confirmMsg'>{t("sure_logout")}</span>
                 </div>
 
                 <div className="logoutBtns">
-                    <span className='yes' onClick={handleConfirmLogout}>{t("Yes,Logout")}</span>
-                    <span className='no' onClick={() => setLogoutModal(false)}>{t("Keep Login")}</span>
+                    <span className='yes' onClick={handleConfirmLogout}>{t("yes_logout")}</span>
+                    <span className='no' onClick={() => setLogoutModal(false)}>{t("keep_login")}</span>
                 </div>
             </Modal>
 
             <Modal
                 maskClosable={false}
                 centered
-                visible={deleteAccModal}
+                open={deleteAccModal}
                 onOk={() => setDeleteAccModal(false)}
                 onCancel={() => {
                     setDeleteAccModal(false)
@@ -178,13 +179,13 @@ const LeftTabProfile = () => {
             >
                 <div className="logoutWrapper">
                     <span><img src={deleteAccImg.src} alt="" /></span>
-                    <span className='headline'>{t("Delete Account")}</span>
-                    <span className='confirmMsg'>{t("Are you sure you want to delete account")}</span>
+                    <span className='headline'>{t('delete_account')}</span>
+                    <span className='confirmMsg'>{t("sure_delete_ac")}</span>
                 </div>
 
                 <div className="logoutBtns">
-                    <span className='yes' onClick={handleConfirmDeleteAcc}>{t("Yes,Delete")}</span>
-                    <span className='no' onClick={() => setDeleteAccModal(false)}>{t("Keep Account")}</span>
+                    <span className='yes' onClick={handleConfirmDeleteAcc}>{t("yes_delete")}</span>
+                    <span className='no' onClick={() => setDeleteAccModal(false)}>{t("keep_account")}</span>
                 </div>
             </Modal>
 

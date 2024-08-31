@@ -13,6 +13,8 @@ import { getQuizEndData, reviewAnswerShowData, reviewAnswerShowSuccess, selectPe
 import ShowScore from 'src/components/Common/ShowScore'
 import { t } from 'i18next'
 import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
+import ShowScoreSkeleton from 'src/components/view/common/ShowScoreSkeleton'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const MySwal = withReactContent(Swal)
@@ -42,42 +44,41 @@ const TrueandFalsePlay = () => {
         let coins = review_answers_deduct_coin
         if (!reviewAnserShow) {
             if (userData?.data?.coins < coins) {
-                toast.error(t("You Don't have enough coins"));
+                toast.error(t("no_enough_coins"));
                 return false;
             }
         }
 
         MySwal.fire({
-            title: t("Are you sure"),
-            text: !reviewAnserShow ? review_answers_deduct_coin + " " + t("Coins will be deducted from your account") : null,
+            title: t("are_you_sure"),
+            text: !reviewAnserShow ? review_answers_deduct_coin + " " + t("coin_will_deduct") : null,
             icon: "warning",
             showCancelButton: true,
             customClass: {
                 confirmButton: 'Swal-confirm-buttons',
                 cancelButton: "Swal-cancel-buttons"
             },
-            confirmButtonText: t("Continue"),
-            cancelButtonText: t("Cancel"),
+            confirmButtonText: t("continue"),
+            cancelButtonText: t("cancel"),
         }).then((result) => {
             if (result.isConfirmed) {
                 if (!reviewAnserShow) {
+
                     let status = 1;
-                    UserCoinScoreApi(
-                        "-" + coins,
-                        null,
-                        null,
-                        "True & False Review Answer",
-                        status,
-                        (response) => {
+                    UserCoinScoreApi({
+                        coins: "-" + coins,
+                        title: t("True & False") + " " + t("review_answer"),
+                        status: status,
+                        onSuccess: (response) => {
                             updateUserDataInfo(response.data);
                             navigate.push("/quiz-play/true-and-false-play/review-answer")
                             dispatch(reviewAnswerShowSuccess(true))
                         },
-                        (error) => {
-                            Swal.fire(t("OOps"), t("Please Try again"), "error");
+                        onError: (error) => {
+                            Swal.fire(t("ops"), t('Please '), t("try_again"), "error");
                             console.log(error);
                         }
-                    );
+                    });
                 } else {
                     navigate.push("/quiz-play/true-and-false-play/review-answer")
                 }
@@ -86,7 +87,7 @@ const TrueandFalsePlay = () => {
     };
 
     const goBack = () => {
-        navigate.push('/all-games')
+        navigate.push('/quiz-play')
     }
 
     return (
@@ -95,21 +96,23 @@ const TrueandFalsePlay = () => {
             <div className='true_and_false dashboard'>
                 <div className='container'>
                     <div className='row '>
-                        <div className='morphisam'>
-                            <div className='whitebackground pt-3'>
-                                <ShowScore
-                                    showCoinandScore={true}
-                                    score={percentageScore}
-                                    totalQuestions={showScore.totalQuestions}
-                                    onReviewAnswersClick={handleReviewAnswers}
-                                    goBack={goBack}
-                                    coins={showScore.coins}
-                                    quizScore={showScore.quizScore}
-                                    showQuestions={showScore.showQuestions}
-                                    reviewAnswer={showScore.reviewAnswer}
-                                    corrAns={resultScore.Correctanswer}
-                                    inCorrAns={resultScore.InCorrectanswer}
-                                />
+                        <div className='morphisam bg_white'>
+                            <div className='whitebackground'>
+                                <Suspense fallback={<ShowScoreSkeleton />}>
+                                    <ShowScore
+                                        showCoinandScore={true}
+                                        score={percentageScore}
+                                        totalQuestions={showScore.totalQuestions}
+                                        onReviewAnswersClick={handleReviewAnswers}
+                                        goBack={goBack}
+                                        coins={showScore.coins}
+                                        quizScore={showScore.quizScore}
+                                        showQuestions={showScore.showQuestions}
+                                        reviewAnswer={showScore.reviewAnswer}
+                                        corrAns={resultScore.Correctanswer}
+                                        inCorrAns={resultScore.InCorrectanswer}
+                                    />
+                                </Suspense>
                             </div>
                         </div>
                     </div>

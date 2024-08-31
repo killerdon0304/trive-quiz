@@ -21,12 +21,12 @@ const MathmaniaPlay = () => {
 
     return (
         <Layout>
-            <Breadcrumb title={t('MathmaniaPlay')} content="" contentTwo="" />
+            <Breadcrumb title={t('mathmania_play')} content="" contentTwo="" />
             <div className='funandlearnplay MathmaniaPlay dashboard'>
                 <div className='container'>
                     <div className='row '>
                         <div className='morphisam'>
-                            <div className='whitebackground pt-3'>
+                            <div className='whitebackground'>
                                 <Mathmaniareviewanswer
                                     reportquestions={false}
                                     questions={questions}

@@ -19,8 +19,9 @@ import { sysConfigdata } from 'src/store/reducers/settingsSlice'
 import { setbookmarkApi, setQuizCategoriesApi, UserCoinScoreApi, UserStatisticsApi } from 'src/store/actions/campaign'
 import { updateUserDataInfo } from 'src/store/reducers/userSlice'
 import { LoadQuizZoneCompletedata, percentageSuccess, questionsDataSuceess, selecttempdata } from 'src/store/reducers/tempDataSlice'
-import rightTickIcon from '../../../assets/images/check-circle-score-screen.svg'
-import crossIcon from '../../../assets/images/x-circle-score-screen.svg'
+import QuestionTopSection from 'src/components/view/common/QuestionTopSection'
+import { setSecondSnap, setTotalSecond } from 'src/store/reducers/showRemainingSeconds'
+
 
 const AudioQuestionsDashboard = ({
   t,
@@ -29,7 +30,8 @@ const AudioQuestionsDashboard = ({
   onOptionClick,
   onQuestionEnd,
   showBookmark,
-  showQuestions
+  showQuestions,
+  isBookmarkPlay
 }) => {
   const [questions, setQuestions] = useState(data)
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -106,80 +108,74 @@ const AudioQuestionsDashboard = ({
 
       let result_score = Score.current
       let percentage = (100 * result_score) / questions?.length
-     
-      UserStatisticsApi(
-        questions?.length,
-        result_score,
-        questions[currentQuestion].category,
-        percentage,
-        response => { },
-        error => {
+
+      UserStatisticsApi({
+        questions_answered: questions?.length,
+        correct_answers: result_score,
+        category_id: questions[currentQuestion].category,
+        percentage: percentage,
+        onSuccess: response => { },
+        onError: error => {
           console.log(error)
         }
-      )
+      })
 
       userScore = await calculateScore(result_score, questions?.length, systemconfig?.audio_quiz_correct_answer_credit_score, systemconfig?.audio_quiz_wrong_answer_deduct_score)
       let status = '0'
       if (percentage >= Number(systemconfig.quiz_winning_percentage)) {
         coins = await calculateCoins(Score.current, questions?.length)
         if (getData.is_play === "0") {
-          UserCoinScoreApi(
-            coins,
-            userScore,
-            null,
-            'Audio Quiz Win',
-            status,
-            response => {
+          UserCoinScoreApi({
+            coins: coins,
+            score: userScore,
+            title: `${t('audio_quiz')} ${t('win')} `,
+            status: status,
+            onSuccess: response => {
               updateUserDataInfo(response.data)
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         }
       } else {
         if (getData.is_play === "0") {
-          UserCoinScoreApi(
-            null,
-            userScore,
-            null,
-            'Audio Quiz lose',
-            status,
-            response => {
+          UserCoinScoreApi({
+            score: userScore,
+            title:`${t('audio_quiz')} ${t('lose')} `,
+            status: status,
+            onSuccess: response => {
               updateUserDataInfo(response.data)
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         }
       }
 
-      
+
       // set quiz categories
       if (getData.is_play === '0') {
         if (getData.maincat_id && getData.id) {
-          setQuizCategoriesApi(
-            4,
-            getData.maincat_id,
-            getData.id,
-            '',
-            success => { },
-            error => {
+          setQuizCategoriesApi({
+            type: 4,
+            category_id: getData.maincat_id,
+            subcategory_id: getData.id,
+            onSuccess: success => { },
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         } else {
-          setQuizCategoriesApi(
-            4,
-            getData.id,
-            '',
-            '',
-            success => { },
-            error => {
+          setQuizCategoriesApi({
+            type: 4,
+            category_id: getData.id,
+            onSuccess: success => { },
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         }
       }
 
@@ -189,6 +185,10 @@ const AudioQuestionsDashboard = ({
 
   // button option answer check
   const handleAnswerOptionClick = selected_option => {
+    let seconds = child.current.getMinuteandSeconds()
+    dispatch(setTotalSecond(timerSeconds))
+    dispatch(setSecondSnap(seconds))
+
     if (!answeredQuestions.hasOwnProperty(currentQuestion)) {
       addAnsweredQuestion(currentQuestion)
 
@@ -208,7 +208,7 @@ const AudioQuestionsDashboard = ({
 
       const currentQuestionq = questions[currentIndex];
 
-      audioPlay(selected_option,currentQuestionq.answer)
+     {!isBookmarkPlay && audioPlay(selected_option, currentQuestionq.answer)}
 
       let update_questions = questions.map(data => {
         return data.id === id ? { ...data, selected_answer: selected_option, isAnswered: true } : data
@@ -227,8 +227,17 @@ const AudioQuestionsDashboard = ({
   const setAnswerStatusClass = option => {
     const currentIndex = currentQuestion;
     const currentQuestionq = questions[currentIndex];
-    const color = showAnswerStatusClass(option, currentQuestionq.isAnswered, currentQuestionq.answer, currentQuestionq.selected_answer)
-    return color
+    if (!isBookmarkPlay) {
+      const color = showAnswerStatusClass(option, currentQuestionq.isAnswered, currentQuestionq.answer, currentQuestionq.selected_answer)
+      return color
+    }else{
+      if (currentQuestionq.selected_answer == option) {
+        return "bg-theme"
+      } else {
+        return
+      }
+    }
+    
   }
 
 
@@ -240,13 +249,14 @@ const AudioQuestionsDashboard = ({
     if (isBookmarked) bookmark = '1'
     else bookmark = '0'
 
-    return setbookmarkApi(
-      question_id,
-      bookmark,
-      type,
-      response => {
+    return setbookmarkApi({
+
+      question_id: question_id,
+      bookmark: bookmark,
+      type: type,
+      onSuccess: response => {
         if (response.error) {
-          toast.error(t('Cannot Remove Question from Bookmark'))
+          toast.error(t('not_remove_que'))
           return false
         } else {
           if (isBookmarked) {
@@ -257,10 +267,10 @@ const AudioQuestionsDashboard = ({
           return true
         }
       },
-      error => {
+      onError: error => {
         console.error(error)
       }
-    )
+    })
   }
 
   const onTimerExpire = () => {
@@ -281,57 +291,14 @@ const AudioQuestionsDashboard = ({
 
   return (
     <React.Fragment>
-      <div className='dashboardPlayUppDiv funLearnQuestionsUpperDiv text-end p-2 pb-0'>
-
-        <div className="leftSec">
-          <div className="coins">
-            <span>{t("Coins")} : {userData?.data?.coins}</span>
-          </div>
-
-          <div className="rightWrongAnsDiv">
-            <span className='rightAns'>
-              <img src={rightTickIcon.src} alt="" />
-              {corrAns}
-            </span>
-
-            <span className='wrongAns'>
-              <img src={crossIcon.src} alt="" />
-              {inCorrAns}
-            </span>
-          </div>
-
-        </div>
-
-        <div className="rightSec">
-          <div className="rightWrongAnsDiv correctIncorrect">
-            <span className='rightAns'>
-              {currentQuestion + 1} - {questions?.length}</span>
-          </div>
-          {showBookmark ? (
-            <Bookmark
-              id={questions[currentQuestion].id}
-              isBookmarked={questions[currentQuestion].isBookmarked ? questions[currentQuestion].isBookmarked : false}
-              onClick={handleBookmarkClick}
-            />
-          ) : (
-            ''
-          )}
-        </div>
-
+      <div className='dashboardPlayUppDiv funLearnQuestionsUpperDiv text-end p-2 pb-0 audio_questions_top_margin'>
+{!isBookmarkPlay &&
+        <QuestionTopSection corrAns={corrAns} inCorrAns={inCorrAns} currentQuestion={currentQuestion} questions={questions} showBookmark={showBookmark} handleBookmarkClick={handleBookmarkClick} showAnswers={true} />
+}
       </div>
       <div className='questions audioQuestiondashboard' ref={scroll}>
-        <div className="timerWrapper">
+      <div className={isBookmarkPlay ? 'd-none' : "timerWrapper"}>
           <div className='inner__headerdash'>
-            {/* {showQuestions ? (
-            <div className='leveldata'>
-              <h5 className='inner-level__data '>
-                {t('level')} : {questions[currentQuestion].level}
-              </h5>
-            </div>
-          ) : (
-            ''
-          )} */}
-
             {timerhide ? (
               <div className='inner__headerdash'>
                 {questions && questions[0]['id'] !== '' ? (
@@ -343,14 +310,6 @@ const AudioQuestionsDashboard = ({
             ) : (
               ''
             )}
-
-            <div>
-              {/* <div className='total__out__leveldata'>
-              <h5 className=' inner__total-leveldata'>
-                {currentQuestion + 1} | {questions?.length}
-              </h5>
-            </div> */}
-            </div>
           </div>
         </div>
 
@@ -478,7 +437,7 @@ const AudioQuestionsDashboard = ({
               ) : (
                 ''
               )}
-              {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
+              {questions[currentQuestion].optione !== "" ? (
                 <div className='row d-flex justify-content-center mob_resp_e'>
                   <div className='col-md-6 col-12'>
                     <div className='inner__questions'>
@@ -523,7 +482,7 @@ const AudioQuestionsDashboard = ({
             className={`btn btn-primary d-flex mx-auto my-5 ${hidden ? 'hideShowbutton' : ''}`}
             onClick={ShowAnswersbtn}
           >
-            {t('Show options')}
+            {t('show_option')}
           </button>
         </div>
       </div>

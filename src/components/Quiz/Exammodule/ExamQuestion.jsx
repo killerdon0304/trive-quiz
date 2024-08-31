@@ -1,9 +1,10 @@
+"use client"
 import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { withTranslation } from "react-i18next";
 import Timer from "src/components/Common/Timer";
 import { Button, Modal } from 'antd';
-import { decryptAnswer, calculateScore, imgError, } from "src/utils";
+import { decryptAnswer, calculateScore } from "src/utils";
 import { FaArrowsAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { sysConfigdata } from "src/store/reducers/settingsSlice";
@@ -11,6 +12,7 @@ import { LoadQuizZoneCompletedata, LoadexamCompletedata, Loadexamsetquiz, getexa
 import { setExammoduleresultApi } from "src/store/actions/campaign";
 import { RiArrowLeftDoubleLine, RiArrowRightDoubleLine } from "react-icons/ri";
 import { useRouter } from "next/router";
+import QuestionMiddleSectionOptions from "src/components/view/common/QuestionMiddleSectionOptions";
 
 function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
     const [questions, setQuestions] = useState(data);
@@ -26,6 +28,7 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
     const [isClickedAnswer, setisClickedAnswer] = useState(false);
 
     const [score, setScore] = useState(0);
+
 
     const navigate = useRouter()
 
@@ -43,6 +46,8 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
     const userData = useSelector((state) => state.User);
 
     const selecttempData = useSelector(selecttempdata);
+
+    const exam_latex = systemconfig.exam_latex_mode === '1' ? true : false
 
     setTimeout(() => {
         setQuestions(data);
@@ -93,14 +98,21 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
     };
 
 
-    const getStatistics = (questions, userData) => {
+    const getStatistics = (questions) => {
+
         const uniqueMarks = [...new Set(questions.map(question => question.marks))];
         let abc = [];
 
         uniqueMarks.forEach(mark => {
             const markQuestions = questions.filter(question => question.marks == mark);
-            const correctAnswers = markQuestions.filter(question => question.selected_answer === decryptAnswer(question.answer, userData?.data?.firebase_id)).length;
+
+            const correctAnswers = markQuestions.filter(question => {
+                const decryptedAnswer = decryptAnswer(question.answer, userData?.data?.firebase_id);
+                return question.selected_answer === decryptedAnswer;
+            }).length;
+
             const incorrectAnswers = markQuestions.length - correctAnswers;
+
             abc.push({ "mark": `${mark}`, "correct_answer": `${correctAnswers}`, "incorrect": `${incorrectAnswers}` });
         });
         return JSON.stringify(abc);
@@ -330,20 +342,20 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
         const statistics = getStatistics(examquestion);
         const totaldata = newgetStatistics(examquestion);
         allcompletedData(totaldata);
-        setExammoduleresultApi(
-            Number(getData.id),
-            1,
-            0,
-            statistics,
-            1,
-            [],
-            (resposne) => {
+        setExammoduleresultApi({
+            exam_module_id: Number(getData.id),
+            total_duration: 1,
+            obtained_marks: 0,
+            statistics: statistics,
+            rules_violated: 1,
+            captured_question_ids: [],
+            onSuccess: (resposne) => {
                 // console.log(resposne);
             },
-            (error) => {
+            onError: (error) => {
                 console.log(error);
             }
-        );
+        });
     }
 
 
@@ -365,11 +377,11 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
 
                 <div className="leftSec">
                     <div className="coins">
-                        <span>{t("Coins")} : {userData?.data?.coins}</span>
+                        <span>{t("coins")} : {userData?.data?.coins}</span>
                     </div>
 
                     <div className="coins">
-                        <span>{questions[currentQuestion].marks} {t("Marks")}</span>
+                        <span>{questions[currentQuestion].marks} {t("marks")}</span>
                     </div>
                 </div>
 
@@ -389,103 +401,8 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
                 </div>
 
 
-                <div className="content__text">
-                    <p className="question-text pt-4">{questions[currentQuestion].question}</p>
-                </div>
+                <QuestionMiddleSectionOptions questions={questions} currentQuestion={currentQuestion} setAnswerStatusClass={setAnswerStatusClass} handleAnswerOptionClick={handleAnswerOptionClick} probability={false} latex={true} exam_latex={exam_latex} />
 
-                {questions[currentQuestion].image ? (
-                    <div className="imagedash">
-                        <img src={questions[currentQuestion].image} onError={imgError} alt="" />
-                    </div>
-                ) : (
-                    ""
-                )}
-                <div className="row optionsWrapper">
-                    {questions[currentQuestion].optiona ? (
-                        <div className="col-md-6 col-12">
-                            <div className="inner__questions">
-                                <button className={`btn button__ui w-100 ${setAnswerStatusClass("a")}`} onClick={(e) => handleAnswerOptionClick("a")} disabled={isClickedAnswer}>
-                                    <div className="row">
-                                        <div className="col">{questions[currentQuestion].optiona}</div>
-                                        {questions[currentQuestion].probability_a ? <div className="col text-end">{questions[currentQuestion].probability_a}</div> : ""}
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        ""
-                    )}
-                    {questions[currentQuestion].optionb ? (
-                        <div className="col-md-6 col-12">
-                            <div className="inner__questions">
-                                <button className={`btn button__ui w-100 ${setAnswerStatusClass("b")}`} onClick={(e) => handleAnswerOptionClick("b")} disabled={isClickedAnswer}>
-                                    <div className="row">
-                                        <div className="col">{questions[currentQuestion].optionb}</div>
-                                        {questions[currentQuestion].probability_b ? <div className="col text-end">{questions[currentQuestion].probability_b}</div> : ""}
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        ""
-                    )}
-                    {questions[currentQuestion].question_type === "1" ? (
-                        <>
-                            {questions[currentQuestion].optionc ? (
-                                <div className="col-md-6 col-12">
-                                    <div className="inner__questions">
-                                        <button className={`btn button__ui w-100 ${setAnswerStatusClass("c")}`} onClick={(e) => handleAnswerOptionClick("c")} disabled={isClickedAnswer}>
-                                            <div className="row">
-                                                <div className="col">{questions[currentQuestion].optionc}</div>
-                                                {questions[currentQuestion].probability_c ? <div className="col text-end">{questions[currentQuestion].probability_c}</div> : ""}
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                ""
-                            )}
-                            {questions[currentQuestion].optiond ? (
-                                <div className="col-md-6 col-12">
-                                    <div className="inner__questions">
-                                        <button className={`btn button__ui w-100 ${setAnswerStatusClass("d")}`} onClick={(e) => handleAnswerOptionClick("d")} disabled={isClickedAnswer}>
-                                            <div className="row">
-                                                <div className="col">{questions[currentQuestion].optiond}</div>
-                                                {questions[currentQuestion].probability_d ? <div className="col text-end">{questions[currentQuestion].probability_d}</div> : ""}
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                ""
-                            )}
-                            {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
-                                <div className="row d-flex justify-content-center mob_resp_e">
-                                    <div className="col-md-6 col-12">
-                                        <div className="inner__questions">
-                                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("e")}`} onClick={(e) => handleAnswerOptionClick("e")} disabled={isClickedAnswer}>
-                                                <div className="row">
-                                                    <div className="col">{questions[currentQuestion].optione}</div>
-                                                    {questions[currentQuestion].probability_e ? (
-                                                        <div className="col" style={{ textAlign: "right" }}>
-                                                            {questions[currentQuestion].probability_e}
-                                                        </div>
-                                                    ) : (
-                                                        ""
-                                                    )}
-                                                </div>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                ""
-                            )}
-                        </>
-                    ) : (
-                        ""
-                    )}
-                </div>
                 <div className='divider'>
                     <hr style={{ width: '112%', backgroundColor: 'gray', height: '2px' }} />
                 </div>
@@ -493,15 +410,17 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
                     <div className="fifty__fifty">
                         <button className="btn btn-primary" onClick={previousQuestion} disabled={disablePrev}>
                             <span className='lifelineIcon'> <RiArrowLeftDoubleLine size={25} /></span>
+                            <span className='lifelineHoverIcon'>{t("previous_question")}</span>
                         </button>
                     </div>
 
                     <div className="notification self-learning-pagination">
                         <Button className="notify_btn btn-primary" onClick={() => setNotificationModal(true)}>
                             <span className='lifelineIcon'> <FaArrowsAlt /></span>
+                            <span className='lifelineHoverIcon'>{t("view_question_dashboard")}</span>
                         </Button>
 
-                        <Modal centered visible={notificationmodal} onOk={() => setNotificationModal(false)} onCancel={() => setNotificationModal(false)} footer={null} className="custom_modal_notify self-modal">
+                        <Modal centered open={notificationmodal} onOk={() => setNotificationModal(false)} onCancel={() => setNotificationModal(false)} footer={null} className="custom_modal_notify self-modal">
                             <div className={`que_pagination ${questions?.length > 50 ? 'questions-scrollbar' : ''}`}>
                                 {questions?.map((que_data, index) => {
                                     return (
@@ -518,25 +437,26 @@ function ExamQuestion({ t, questions: data, timerSeconds, onOptionClick }) {
                             <hr />
                             <div className="resettimer">
                                 <button className="btn btn-primary" onClick={onSubmit}>
-                                    {t("Submit")}
+                                    {t("submit")}
                                 </button>
                             </div>
                             <hr />
-                            <p>{t("Color Code")}</p>
+                            <p>{t("color_code")}</p>
                             <div className="custom_checkbox d-flex flex-wrap align-items-center">
-                                <input type="radio" name="" className="tick me-2" checked readOnly /> {t("Attended Question")}
-                                <input type="radio" name="" className="untick ms-3 me-2" disabled readOnly /> {t("Un-Attempted")}
+                                <input type="radio" name="" className="tick me-2" checked readOnly /> {t("att")}
+                                <input type="radio" name="" className="untick ms-3 me-2" disabled readOnly /> {t("un_att")}
                             </div>
                         </Modal>
                     </div>
                     <div className="skip__questions">
                         <button className="btn btn-primary" onClick={nextQuestion} disabled={disableNext}>
                             <span className='lifelineIcon'> <RiArrowRightDoubleLine size={25} /></span>
+                            <span className='lifelineHoverIcon'>{`${t('next')} ${t('questions')} `}</span>
                         </button>
                     </div>
                     <div className="resettimer">
                         <button className="btn btn-primary" onClick={onSubmit}>
-                            {t("Submit Exam")}
+                            {t("submit Exam")}
                         </button>
                     </div>
                 </div>

@@ -17,9 +17,10 @@ import 'react-tooltip/dist/react-tooltip.css'
 import '../../public/assets/css/bootstrap.min.css'
 import '../../public/assets/css/style.css'
 
+
 // ** Configure JSS & ClassName
 const App = ({ Component, pageProps }) => {
-  // console.log(getLayout)
+  // console.log(getLayout) 
   Router.events.on('routeChangeStart', () => {
     NProgress.start()
   })
@@ -30,11 +31,13 @@ const App = ({ Component, pageProps }) => {
     NProgress.done()
   })
 
+
   return (
     <Provider store={store}>
         <I18nextProvider i18n={language}>
           <Toaster position='top-center' containerClassName='toast-custom' />
           <InspectElement>
+         
             <Routes>
               <Component {...pageProps} />
             </Routes>

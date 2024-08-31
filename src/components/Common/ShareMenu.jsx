@@ -12,8 +12,8 @@ import {
 } from 'react-share';
 import { t } from 'i18next';
 
-const ShareMenu = ({ currentUrl, shouldGenerateRoomCode, appName,  showModal, hideModal, entryFee, categoryName }) => {
-  
+const ShareMenu = ({ currentUrl, shouldGenerateRoomCode, appName, showModal, hideModal, entryFee, categoryName }) => {
+
     const shareButtons = (
         <>
             <FacebookShareButton
@@ -45,8 +45,8 @@ const ShareMenu = ({ currentUrl, shouldGenerateRoomCode, appName,  showModal, hi
             <Modal
                 size="small"
                 centered
-                title={t("share-room-code")}
-                visible={showModal}
+                title={t("share_room_code")}
+                open={showModal}
                 onOk={hideModal}
                 onCancel={hideModal}
                 footer={null}

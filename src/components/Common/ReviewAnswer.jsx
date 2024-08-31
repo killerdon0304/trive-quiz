@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import PropTypes from "prop-types";
 import { withTranslation } from "react-i18next";
-import { decryptAnswer, imgError } from "src/utils";
+import { RenderHtmlContent, decryptAnswer, imgError, reportQuestion } from "src/utils";
 import { useSelector } from "react-redux";
 import { sysConfigdata } from "src/store/reducers/settingsSlice";
 import { ReportQuestionApi } from "src/store/actions/campaign";
@@ -15,7 +15,7 @@ import { t } from "i18next";
 
 const MySwal = withReactContent(Swal);
 
-const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
+const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel, latex }) => {
 
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [disablePrev, setDisablePrev] = useState(true);
@@ -26,31 +26,6 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
     // store data get
     const userData = useSelector((state) => state.User);
 
-    const reportQuestion = (question_id) => {
-        MySwal.fire({
-            showCancelButton: true,
-            customClass: {
-                confirmButton: 'Swal-confirm-buttons',
-                cancelButton: "Swal-cancel-buttons"
-            },
-            confirmButtonText: t("Continue"),
-            input: "textarea",
-            inputLabel: t("Reason"),
-            inputPlaceholder: t("Enter your Reason"),
-            inputAttributes: {
-                "aria-label": t("Enter your Reason"),
-            },
-        }).then((result) => {
-            if (result.isConfirmed) {
-                ReportQuestionApi(question_id, result.value, (response) => {
-                    Swal.fire(t("Success"), t("Question Reported successfully"), "success");
-                }, (error) => {
-                    Swal.fire(t("OOps"), t("Please Try again"), "error");
-                    console.log(error)
-                })
-            }
-        });
-    };
 
     const previousQuestion = () => {
         const prevQuestion = currentQuestion - 1;
@@ -87,6 +62,7 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
         }
     };
 
+
     return (
         <>
             <div className="reviewUpperDiv">
@@ -103,7 +79,7 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
 
                 <div className="centerSec">
                     <div className="text-center reviewHeadline">
-                        <h4 className="">{t("Review Answers")}</h4>
+                        <h4 className="">{t("review_answers")}</h4>
                     </div>
                 </div>
 
@@ -128,7 +104,13 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
             </div>
 
             <div className="content__text">
-                <p className="question-text">{questions[currentQuestion]?.question}</p>
+                <p className="question-text">
+                    {systemconfig.latex_mode === "1" ?
+                        <RenderHtmlContent htmlContent={questions[currentQuestion]?.question} />
+                        :
+                        questions[currentQuestion]?.question
+                    }
+                </p>
             </div>
 
             {questions[currentQuestion]?.image ? (
@@ -143,7 +125,13 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                 {questions[currentQuestion]?.optiona ? (
                     <div className="col-md-6 col-12">
                         <div className="inner__questions">
-                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("a")}`}>{questions[currentQuestion]?.optiona}</button>
+                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("a")}`}>
+                                {systemconfig.latex_mode === "1" ?
+                                    <RenderHtmlContent htmlContent={questions[currentQuestion]?.optiona} />
+                                    :
+                                    questions[currentQuestion]?.optiona
+                                }
+                            </button>
                         </div>
                     </div>
                 ) : (
@@ -152,7 +140,13 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                 {questions[currentQuestion]?.optionb ? (
                     <div className="col-md-6 col-12">
                         <div className="inner__questions">
-                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("b")}`}>{questions[currentQuestion]?.optionb}</button>
+                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("b")}`}>
+                                {systemconfig.latex_mode === "1" ?
+                                    <RenderHtmlContent htmlContent={questions[currentQuestion]?.optionb} />
+                                    :
+                                    questions[currentQuestion]?.optionb
+                                }
+                            </button>
                         </div>
                     </div>
                 ) : (
@@ -163,7 +157,13 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                         {questions[currentQuestion]?.optionc ? (
                             <div className="col-md-6 col-12">
                                 <div className="inner__questions">
-                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("c")}`}>{questions[currentQuestion]?.optionc}</button>
+                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("c")}`}>
+                                        {systemconfig.latex_mode === "1" ?
+                                            <RenderHtmlContent htmlContent={questions[currentQuestion]?.optionc} />
+                                            :
+                                            questions[currentQuestion]?.optionc
+                                        }
+                                    </button>
                                 </div>
                             </div>
                         ) : (
@@ -172,20 +172,31 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                         {questions[currentQuestion]?.optiond ? (
                             <div className="col-md-6 col-12">
                                 <div className="inner__questions">
-                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("d")}`}>{questions[currentQuestion]?.optiond}</button>
+                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("d")}`}>
+                                        {systemconfig.latex_mode === "1" ?
+                                            <RenderHtmlContent htmlContent={questions[currentQuestion]?.optiond} />
+                                            :
+                                            questions[currentQuestion]?.optiond
+                                        }
+                                    </button>
                                 </div>
                             </div>
                         ) : (
                             ""
                         )}
-                        {systemconfig && systemconfig.option_e_mode && questions[currentQuestion]?.optione ? (
+                        {questions[currentQuestion]?.optione !== "" ? (
                             <div className="row d-flex justify-content-center">
                                 <div className="col-md-6 col-12">
                                     <div className="inner__questions">
                                         <button className={`btn button__ui w-100 ${setAnswerStatusClass("e")}`}>
                                             <div className="row">
-                                                <div className="col">{questions[currentQuestion]?.optione}</div>
-                                                {questions[currentQuestion]?.probability_e ? <div className="col text-end">{questions[currentQuestion]?.probability_e}</div> : ""}
+                                                <div className="col">
+                                                    {systemconfig.latex_mode === "1" ?
+                                                        <RenderHtmlContent htmlContent={questions[currentQuestion]?.optione} />
+                                                        :
+                                                        questions[currentQuestion]?.optione
+                                                    }
+                                                </div>
                                             </div>
                                         </button>
                                     </div>
@@ -200,7 +211,7 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                 )}
                 {!questions[currentQuestion]?.selected_answer ? (
                     <div className="text-end">
-                        <span className="">*{t("Not Attempted")}</span>
+                        <span className="">*{t("not_att")}</span>
                     </div>
                 ) : (
                     ""
@@ -219,7 +230,7 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                 </div>
                 <div className="resettimer">
                     <button className="btn btn-primary" onClick={goBack}>
-                        {t("Back")}
+                        {t("back")}
                     </button>
                 </div>
                 <div className="skip__questions">
@@ -229,7 +240,13 @@ const ReviewAnswer = ({ questions, goBack, reportquestions, showLevel }) => {
                 </div>
             </div>
             <div className="text-center review-answer-data">
-                <small className="review-latext-note">{questions[currentQuestion]?.note ? <>{t("Note")} :- <p dangerouslySetInnerHTML={{ __html: questions[currentQuestion]?.note }}></p></> : ""}</small>
+                <small className="review-latext-note">
+                    {questions[currentQuestion]?.note ?
+                        <>{t("note")} :- {systemconfig.latex_mode === "1" ? <p><RenderHtmlContent htmlContent={questions[currentQuestion]?.note} /></p> : <p dangerouslySetInnerHTML={{ __html: questions[currentQuestion]?.note }}></p>}</>
+                        :
+                        ""
+                    }
+                </small>
             </div>
         </>
     );

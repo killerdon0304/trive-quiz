@@ -3,6 +3,7 @@ import titleline from '../../../assets/images/title-line.svg'
 import { withTranslation } from 'react-i18next'
 import { t } from 'i18next'
 import { truncate } from 'src/utils'
+import LineFooterForTitle from 'src/components/Common/LineFooterForTitle'
 
 const Features = (props) => {
 
@@ -40,9 +41,7 @@ const Features = (props) => {
             <div className='row'>
               <div className='head_title'>
                 <h2>{props?.homeSettings?.section2_heading}</h2>
-                <div className='image'>
-                  <img src={titleline.src} alt='line' />
-                </div>
+                <LineFooterForTitle/>
               </div>
             </div>
             <div className='feature_inner'>

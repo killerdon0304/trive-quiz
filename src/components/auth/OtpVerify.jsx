@@ -17,6 +17,8 @@ import OtpInput from 'react-otp-input';
 import { t } from 'i18next'
 import { withTranslation } from 'react-i18next'
 import dynamic from 'next/dynamic'
+import { RecaptchaVerifier, getAdditionalUserInfo, signInWithPhoneNumber } from 'firebase/auth'
+import { IoMdArrowRoundBack } from "react-icons/io";
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const OtpVerify = () => {
@@ -26,6 +28,8 @@ const OtpVerify = () => {
     const [otp, setOtp] = useState('');
     const [isSend, setIsSend] = useState(false)
     const [newUserScreen, setNewUserScreen] = useState(false)
+    const [seconds, setSeconds] = useState(0)
+    const [isCounting, setIsCounting] = useState(false)
     const [profile, setProfile] = useState({
         name: '',
         mobile: '',
@@ -50,7 +54,7 @@ const OtpVerify = () => {
             if (recaptchaContainer) {
                 recaptchaContainer.innerHTML = ''; // Clear the container
 
-                window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(recaptchaContainer, {
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainer, {
                     size: 'invisible',
                     // other options
                 });
@@ -84,28 +88,55 @@ const OtpVerify = () => {
         e.preventDefault()
         setLoad(true)
         let phone_number = '+' + phoneNumber
-        if (validatePhoneNumber(phone_number)) {
-            const appVerifier = window.recaptchaVerifier
-            auth
-                .signInWithPhoneNumber(phone_number, appVerifier)
-                .then(response => {
-                    // success
-                    setIsSend(true)
-                    setLoad(false)
-                    setConfirmResult(response)
-                })
-                .catch(error => {
-                    window.recaptchaVerifier.render().then(function (widgetId) {
-                        window.recaptchaVerifier.reset(widgetId)
+        try {
+
+
+            if (validatePhoneNumber(phone_number)) {
+                const appVerifier = window.recaptchaVerifier
+                signInWithPhoneNumber(auth, phone_number, appVerifier)
+                    .then(response => {
+                        // success
+                        setIsSend(true)
+                        setLoad(false)
+                        setConfirmResult(response)
                     })
-                    handleVerificationError(error)
-                    setLoad(false)
-                })
-        } else {
-            setLoad(false)
-            toast.error(t('Please Enter correct Mobile Number with Country Code'))
+                    .catch(error => {
+                        // window.recaptchaVerifier.render().then(function (widgetId) {
+                        //     window.recaptchaVerifier.reset(widgetId)
+                        // })
+                        if (error.code == 'auth/too-many-requests') {
+                            router.push('/')
+                            toast.error("please try after some time latter")
+                        } else {
+                            console.log(error)
+                            handleVerificationError(error)
+                            setLoad(false)
+                        }
+                    })
+            } else {
+                setLoad(false)
+                toast.error(t('enter_num_with_country_code'))
+            }
+        } catch (error) {
+            console.log(error);
         }
+        setSeconds(60)
+        setIsCounting(true)
     }
+    useEffect(() => {
+
+    }, [onSubmit])
+    useEffect(() => {
+        let timer;
+        if (isCounting && seconds > 0) {
+            timer = setInterval(() => {
+                setSeconds((prevSeconds) => prevSeconds - 1);
+            }, 1000);
+        } else if (seconds === 0) {
+            setIsCounting(false);
+        }
+        return () => clearInterval(timer);
+    }, [isCounting, seconds]);
 
     // resend otp
     const resendOtp = e => {
@@ -113,21 +144,23 @@ const OtpVerify = () => {
         setLoad(true)
         let phone_number = '+' + phoneNumber
         const appVerifier = window.recaptchaVerifier
-        auth
-            .signInWithPhoneNumber(phone_number, appVerifier)
+        signInWithPhoneNumber(auth, phone_number, appVerifier)
             .then(response => {
                 setIsSend(true)
                 setLoad(false)
                 setConfirmResult(response)
-                toast.success(t('OTP has been sent'))
+                toast.success(t('otp_sent'))
             })
             .catch(error => {
-                window.recaptchaVerifier.render().then(function (widgetId) {
-                    window.recaptchaVerifier.reset(widgetId)
-                })
+                // window.recaptchaVerifier.render().then(function (widgetId) {
+                //     window.recaptchaVerifier.reset(widgetId)
+                // })
+                handleVerificationError(error)
                 toast.error(error.message)
                 setLoad(false)
             })
+        setSeconds(60)
+        setIsCounting(true)
     }
 
     // verify code
@@ -147,6 +180,7 @@ const OtpVerify = () => {
                     let name = response.user.displayName
                     let fcm_id = null
                     let friends_code = null
+                    const { isNewUser } = getAdditionalUserInfo(response)
                     register(
                         firebase_id,
                         'mobile',
@@ -157,16 +191,22 @@ const OtpVerify = () => {
                         fcm_id,
                         friends_code,
                         success => {
-                            toast.success(t('Successfully Verified'))
-                            if (response.additionalUserInfo.isNewUser) {
+                            toast.success(t('successfully_login'))
+                            if (isNewUser) {
                                 //If new User then show the Update Profile Screen
                                 setNewUserScreen(true)
                             } else {
-                                router.push('/all-games')
+                                router.push('/quiz-play')
                             }
                         },
                         error => {
-                            toast.error(t('Error') + ' :' + error)
+                            if (error === "126") {
+                                toast.error(t("ac_deactive"));
+                            }else{
+                                toast.error(`${t('Please ')}${t('try_again')}`);
+                                console.log("handleVerifyCode" ,error);
+                                
+                            }
                         }
                     )
                 })
@@ -239,15 +279,15 @@ const OtpVerify = () => {
             <div className='otpverify wrapper loginform mt-5'>
                 {!newUserScreen ? (
                     <div className='custom-container glassmorcontain'>
-                        <div className='row morphisam'>
-                            <div className='col-12 border-line position-relative'>
+                        <div className='row morphisam adj_width'>
+                            <div className='col-12 border-line position-relative Otp_Verification'>
                                 <div className='inner__login__form outerline'>
-                                    <h3 className='mb-4 text-capitalize text-center'>{t('Otp Verification')}</h3>
                                     {!isSend ? (
                                         <form className='form text-start' onSubmit={onSubmit}>
+                                            <h3 className='mb-4  text-left Otp_Verification_title'>{t('sign_mobile')}</h3>
                                             <div>
-                                                <label htmlFor='number' className='mb-2'>
-                                                    {t('Please Enter mobile number')} :
+                                                <label htmlFor='number' className='mb-2 paddingRight'>
+                                                    {t('digit_code')}
                                                 </label>
                                                 <PhoneInput
                                                     value={phoneNumber}
@@ -255,14 +295,17 @@ const OtpVerify = () => {
                                                     countryCodeEditable={false}
                                                     autoFocus={true}
                                                     onChange={phone => setPhoneNumber(phone)}
-                                                    className=' position-relative d-inline-block w-100 form-control'
+                                                    className=' position-relative d-inline-block w-100 form-control my-3'
                                                 />
-                                                <div className='send-button'>
+                                                <div className='Otp_Verification_title'>
                                                     <button className='btn btn-primary' type='submit'>
-                                                        {!load ? t('Request OTP') : t('Please Wait')}
+                                                        {!load ? t('req_otp') : t('please_wait')}
                                                     </button>
-                                                    <Link className='btn btn-dark backlogin' href={'/auth/login'} type='button'>
-                                                        {t('Back to Login')}
+
+                                                </div>
+                                                <div className='Otp_Verification_title'>
+                                                    <Link className='btn backlogin' href={'/auth/login'} type='button'>
+                                                        <IoMdArrowRoundBack /> {t('Back_to_login')}
                                                     </Link>
                                                 </div>
                                             </div>
@@ -270,10 +313,11 @@ const OtpVerify = () => {
                                     ) : null}
                                     {isSend ? (
                                         <form className='form text-start sent_otp' onSubmit={handleVerifyCode}>
+                                            <h3 className='mb-4  text-left Otp_Verification_title'>{t("otp_Verification")}</h3>
                                             <div className='form'>
-                                                <h2 className='title'>{t("Enter Code")}</h2>
-                                                <label htmlFor='code' className='text-center my-4 d-flex justify-content-center  mb-3'>
-                                                    {t("otpsentto")}{phoneNumber}
+
+                                                <label htmlFor='code' className='Otp_Verification_title paddingRight'>
+                                                    {t("send_code")} +{phoneNumber}
                                                 </label>
                                                 <OtpInput
                                                     value={otp}
@@ -283,25 +327,25 @@ const OtpVerify = () => {
                                                     renderSeparator={<span className='space'></span>}
                                                     renderInput={(props) => <input {...props} className="custom-input-class"></input>}
                                                 />
-                                                <div className='text-center resend_otp my-4'>
-                                                    <p>{t("Didn't_get")}</p>
-                                                    <u>
+
+                                                <div className='text-center resend_otp my-2'>
+                                                    {seconds == 0 ? <div className='hide_resend_otp'> <p>{t("didnt_get")}</p>
                                                         <Link className='main-color' href='#' onClick={resendOtp}>
-                                                            {t('Resend OTP')}
+                                                            {t('otp_resend')}
                                                         </Link>
-                                                    </u>
+                                                    </div> : <p> {t('please_wait')} {seconds}</p>}
                                                 </div>
-                                                <div className='btn-group'>
+                                                <div className='Otp_Verification_title'>
 
                                                     <button className='btn btn-primary' type='submit'>
-                                                        {!load ? t('Submit') : t('Please Wait')}
+                                                        {!load ? t('submit') : t('please_wait')}
                                                     </button>
 
-
-                                                    <button type='button' className='btn btn-dark' onClick={onChangePhoneNumber}>
-                                                        {t('Back')}
+                                                </div>
+                                                <div className='Otp_Verification_title'>
+                                                    <button type='button' className='btn ' onClick={onChangePhoneNumber}>
+                                                        <IoMdArrowRoundBack />  {t("Back_to_login")}
                                                     </button>
-
                                                 </div>
                                             </div>
                                         </form>

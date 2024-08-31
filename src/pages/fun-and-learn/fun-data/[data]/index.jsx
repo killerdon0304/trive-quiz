@@ -1,15 +1,15 @@
 "use client"
-import React, { Fragment, useEffect, useState } from 'react'
+import React, { Fragment, lazy, Suspense, useEffect, useState } from 'react'
 import { withTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { getfunandlearnApi } from 'src/store/actions/campaign'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import { selectCurrentLanguage } from 'src/store/reducers/languageSlice'
 import { useRouter } from 'next/router'
-import FunandLearnSlider from 'src/components/Quiz/Fun_and_Learn/FunandLearnSlider'
 import dynamic from 'next/dynamic'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
-
+const FunandLearnSlider = lazy(() => import('src/components/Quiz/Fun_and_Learn/FunandLearnSlider'))
 const Fun_and_Learn = ({ t }) => {
   const [funandlearn, setFunandLearn] = useState({ all: '', selected: '' })
 
@@ -23,10 +23,10 @@ const Fun_and_Learn = ({ t }) => {
 
     if (router.query.isSubcategory === "0") {
       // subcategory api
-      getfunandlearnApi(
-        'category',
-        router.query.catid,
-        response => {
+      getfunandlearnApi({
+        type: 'category',
+        type_id: router.query.catid,
+        onSuccess: response => {
           let funandlearn_data = response.data
           setFunandLearn({
             all: funandlearn_data,
@@ -35,17 +35,17 @@ const Fun_and_Learn = ({ t }) => {
           // console.log(funandlearn)
           setfunandlearnLoading(false)
         },
-        error => {
+        onError: error => {
           setfunandlearnLoading(false)
           console.log(error)
-          toast.error(t('No Data found'))
+          toast.error(t('no_data_found'))
         }
-      )
+      })
     } else {
-      getfunandlearnApi(
-        'subcategory',
-        router.query.catid,
-        response => {
+      getfunandlearnApi({
+        type: 'subcategory',
+        type_id: router.query.catid,
+        onSuccess: response => {
           let funandlearn_data = response.data
           setFunandLearn({
             all: funandlearn_data,
@@ -54,13 +54,13 @@ const Fun_and_Learn = ({ t }) => {
           setfunandlearnLoading(false)
           // console.log(funandlearn)
         },
-        error => {
+        onError: error => {
           setfunandlearnLoading(false)
           console.log(error)
           setFunandLearn("")
-          toast.error(t('No Data found'))
+          toast.error(t('no_data_found'))
         }
-      )
+      })
     }
   }
 
@@ -71,17 +71,19 @@ const Fun_and_Learn = ({ t }) => {
 
   return (
     <Layout>
-      <Breadcrumb showBreadcrumb={true} title={t('Fun and Learn')} content={t('Home')} contentTwo={funandlearn?.selected?.category_name} contentThree={funandlearn?.selected?.subcategory_name} contentFour="" />
+      <Breadcrumb showBreadcrumb={true} title={t('fun_and_learn')} content={t('home')} contentTwo={funandlearn?.selected?.category_name} contentThree={funandlearn?.selected?.subcategory_name} contentFour="" />
       <div className='funandlearn mb-5'>
         <div className='container'>
           <div className='row morphisam mb-5'>
             <div className='col-12'>
               <div className='bottom_card'>
-                <FunandLearnSlider
-                  data={funandlearn.all}
-                  selected={funandlearn.selected}
-                  funandlearningloading={funandlearningloading}
-                />
+                <Suspense fallback={<QuestionSkeleton />}>
+                  <FunandLearnSlider
+                    data={funandlearn.all}
+                    selected={funandlearn.selected}
+                    funandlearningloading={funandlearningloading}
+                  />
+                </Suspense>
               </div>
             </div>
           </div>

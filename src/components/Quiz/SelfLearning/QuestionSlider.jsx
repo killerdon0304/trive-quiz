@@ -40,7 +40,7 @@ const QuestionSlider = ({ t, onClick, activeIndex }) => {
             <div className="cat__Box">
               <div className="sub_cat_title">
                 <p className="text-capitalize font-weight-bold font-smaller subcat__p">
-                  {t("Select Number of Questions")}
+                  {t("select_num_of_que")}
                 </p>
               </div>
               <div className="sub_cat_title1">
@@ -50,7 +50,7 @@ const QuestionSlider = ({ t, onClick, activeIndex }) => {
                   style={{ cursor: "pointer" }}
                 >
                   {arr.length >= 8 ? <>
-                    {showAllQuestions ? t("See Less") : t("See More")}
+                    {showAllQuestions ? t("see_less") : t("see_more")}
                   </>
                     : null}
                 </p>
@@ -70,7 +70,7 @@ const QuestionSlider = ({ t, onClick, activeIndex }) => {
                               {data}
                             </p>
                             <p className="text-center m-auto d-block numText">
-                              {t("Number")}
+                              {t("number")}
                             </p>
                           </div>
                         </div>
@@ -91,7 +91,7 @@ const QuestionSlider = ({ t, onClick, activeIndex }) => {
                               {data}
                             </p>
                             <p className="text-center m-auto d-block numText">
-                              {t("Number")}
+                              {t("number")}
                             </p>
                           </div>
                         </div>
