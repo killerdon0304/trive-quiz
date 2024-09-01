@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import { withTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -9,12 +9,12 @@ import { updateUserDataInfo } from 'src/store/reducers/userSlice'
 import { badgesData, LoadNewBadgesData } from 'src/store/reducers/badgesSlice'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
-import DailyQuizQuestions from 'src/components/Quiz/DailyQuiz/DailyQuizQuestions'
 import { reviewAnswerShowSuccess } from 'src/store/reducers/tempDataSlice'
 import { useRouter } from 'next/router'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
-
+const DailyQuizQuestions = lazy(() => import('src/components/Quiz/DailyQuiz/DailyQuizQuestions'))
 const DailyQuizDashboard = ({ t }) => {
 
   const [questions, setQuestions] = useState([{ id: '', isBookmarked: false }])
@@ -43,8 +43,8 @@ const DailyQuizDashboard = ({ t }) => {
   }, [])
 
   const getNewQuestions = () => {
-    dailyQuizApi(
-      (response) => {
+    dailyQuizApi({
+      onSuccess: (response) => {
         if (response.data && !response.data.error) {
           let questions = response.data.map((data) => {
 
@@ -64,22 +64,22 @@ const DailyQuizDashboard = ({ t }) => {
           setQuestions(questions);
         }
       },
-      (error) => {
+      onError: (error) => {
         if (error === "112") {
-          toast.error(t("You have Already Played"));
-          navigate.push('/all-games')
+          toast.error(t("already_played"));
+          navigate.push('/quiz-play')
           return false;
         }
 
         if (error === "102") {
-          toast.error(t("No Questions Found"));
-          navigate.push("/all-games");
+          toast.error(t("no_que_found"));
+          navigate.push("/quiz-play");
 
           return false;;
         }
 
       }
-    );
+    });
   };
 
 
@@ -98,26 +98,24 @@ const DailyQuizDashboard = ({ t }) => {
           LoadNewBadgesData('thirsty', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            thirsty_coin,
-            null,
-            null,
-            t('thirsty badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: thirsty_coin,
+            title: t('thirsty_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -130,27 +128,29 @@ const DailyQuizDashboard = ({ t }) => {
 
   return (
     <Layout>
-      <Breadcrumb title={t('Daily Quiz')} content="" contentTwo="" />
+      <Breadcrumb title={`${t('daily')} ${t('quiz')}`} content="" contentTwo="" />
       <div className='dashboard'>
         <div className='container'>
           <div className='row'>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 {(() => {
                   if (questions && questions?.length >= 0) {
                     return (
-                      <DailyQuizQuestions
-                        questions={questions}
-                        timerSeconds={TIMER_SECONDS}
-                        onOptionClick={handleAnswerOptionClick}
-                        showQuestions={true}
-                        showLifeLine={true}
-                      />
+                      <Suspense fallback={<QuestionSkeleton />}>
+                        <DailyQuizQuestions
+                          questions={questions}
+                          timerSeconds={TIMER_SECONDS}
+                          onOptionClick={handleAnswerOptionClick}
+                          showQuestions={true}
+                          showLifeLine={true}
+                        />
+                      </Suspense>
                     )
                   } else {
                     return (
                       <div className='text-center text-white'>
-                        <p>{'No Questions Found'}</p>
+                        <p>{t('no_que_found')}</p>
                       </div>
                     )
                   }

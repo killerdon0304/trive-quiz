@@ -23,7 +23,7 @@ const FunandLearnIntro = ({ data, t, }) => {
           <div className='card__name m-auto funLevels'>
             <p className='text-center m-auto d-block dataTitle'>{data.title}</p>
             <p className='text-center m-auto d-block fun_learn_hide'>
-              {t('Questions')} : {data.no_of_que}
+              {t('Questquestionsions')} : {data.no_of_que}
             </p>
           </div>
         </div>

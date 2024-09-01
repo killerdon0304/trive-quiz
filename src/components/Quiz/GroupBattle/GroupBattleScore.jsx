@@ -77,26 +77,24 @@ const GroupBattleScore = ({ t, totalQuestions }) => {
     if (usersWithMax.includes(userData?.data?.id) && entryFee > 0) {
       // Winner logic
       const status = 0;
-      UserCoinScoreApi(
-        Math.floor(winAmount),
-        null,
-        null,
-        t('Won Battle'),
-        status,
-        response => {
-          getusercoinsApi(
-            responseData => {
+      UserCoinScoreApi({
+        coins: Math.floor(winAmount),
+        title: t('won_battle'),
+        status: status,
+        onSuccess: response => {
+          getusercoinsApi({
+            onSuccess: responseData => {
               updateUserDataInfo(responseData.data);
             },
-            error => {
+            onError: error => {
               console.log(error);
             }
-          );
+          });
         },
-        error => {
+        onError: error => {
           console.log(error);
         }
-      );
+      });
     }
   }, []);
 
@@ -154,28 +152,28 @@ const GroupBattleScore = ({ t, totalQuestions }) => {
             if (userData?.data?.id === alluid[index]) {
               return (
                 <div className="result_data">
-                  <p>{t('Congratulations')}</p>
-                  <h3>{t('Winner')}</h3>
+                  <p>{t('congrats')}</p>
+                  <h3>{t('winner')}</h3>
                 </div>
               );
             } else {
               return (
                 <div className="result_data">
-                  <p>{t('Good luck next time')}</p>
-                  <h3>{t('You Lose')}</h3>
+                  <p>{t('good_luck_next_time')}</p>
+                  <h3>{t('you_lose')}</h3>
                 </div>
               );
             }
           } else if (maxIndices?.length >= 2) {
             return (
               <div className="result_data">
-                <h3>{t('Tie')}</h3>
+                <h3>{t('tie')}</h3>
               </div>
             );
           }
         })()}
 
-        <div className="user_data group_battle tieMoreThanTwoWrapper">
+        <div className="user_data group_battle tieMoreThanTwoWrapper group_battle_winner_screen">
           {(() => {
             if (maxIndices?.length === 1) {
               return (
@@ -189,7 +187,7 @@ const GroupBattleScore = ({ t, totalQuestions }) => {
                         className="showscore-userprofile"
                         onError={e => imgError(e)}
                       />
-                      <p>{allData[winnerIndex].name}</p>
+                      <p className='mb-3'>{allData[winnerIndex].name}</p>
                       <div className="rightWrongAnsDiv scoreRightWrongAnsDiv">
                         <span className="rightAns">
                           <img src={rightTickIcon.src} alt="" />
@@ -205,11 +203,11 @@ const GroupBattleScore = ({ t, totalQuestions }) => {
 
                   <div className="otherPlayersRanksWrapper">
                     {/* loser */}
-                    <div className="opponet_loser group_battle_loser">
+                    <div className="opponet_loser group_battle_loser  group_battle_winner_screen_looser">
                       {remainingData.map((elem, i) =>
                         elem.uid !== '' ? (
-                          <div className="group_data" key={elem.uid}>
-                            <div className="d-flex align-items-center justify-content-start otherplayesProfileWrapper">
+                          <div className="group_data group_battle_winner_screen_looser_group_data" key={elem.uid}>
+                            <div className="d-flex flex-column align-items-center justify-content-start otherplayesProfileWrapper">
                               <img src={elem.image} alt="user" className="showscore-userprofile" onError={imgError} />
                               <p>{elem.name}</p>
                             </div>
@@ -241,11 +239,12 @@ const GroupBattleScore = ({ t, totalQuestions }) => {
                 <>
                   {sortedData.map((elem, i) => (
                     <div className="group_data" key={elem.uid}>
-                      <div className="d-flex align-items-center justify-content-start otherplayesProfileWrapper">
+                      <div className="d-flex flex-column align-items-center justify-content-start otherplayesProfileWrapper">
                         <img src={elem.image} alt="user" className="showscore-userprofile" onError={imgError} />
                         <p>{elem.name}</p>
                       </div>
                       <div className="rightWrongAnsDiv scoreRightWrongAnsDiv">
+                       
                         <span className="rightAns">
                           <img src={rightTickIcon.src} alt="" />
                           {elem.correctAnswer}
@@ -268,7 +267,7 @@ const GroupBattleScore = ({ t, totalQuestions }) => {
       <div className="dashoptions row text-center">
         <div className="skip__questions col-12 col-sm-6 col-md-2 custom-dash">
           <button className="btn btn-primary" onClick={goToHome}>
-            {t('Home')}
+            {t('home')}
           </button>
         </div>
       </div>

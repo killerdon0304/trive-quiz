@@ -19,7 +19,7 @@ const PrivacyPolicy = () => {
 
     return (
         <Layout>
-            <Breadcrumb title={t('Privacy Policy')} content="" contentTwo="" />
+            <Breadcrumb title={t('privacy_policy')} content="" contentTwo="" />
             <div className='Instruction'>
                 <div className='container'>
                     <div className='row morphisam'>

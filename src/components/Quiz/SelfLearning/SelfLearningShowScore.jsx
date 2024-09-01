@@ -4,7 +4,7 @@ import { CircularProgressbarWithChildren, buildStyles } from 'react-circular-pro
 import { easeQuadInOut } from 'd3-ease'
 import AnimatedProgressProvider from 'src/utils/AnimatedProgressProvider.jsx'
 import 'react-circular-progressbar/dist/styles.css'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
 import { imgError } from 'src/utils'
 import { useRouter } from 'next/navigation'
@@ -12,7 +12,9 @@ import rightTickIcon from '../../../assets/images/check-circle-score-screen.svg'
 import crossIcon from '../../../assets/images/x-circle-score-screen.svg'
 import { getQuizEndData } from 'src/store/reducers/tempDataSlice'
 import { websettingsData } from 'src/store/reducers/webSettings'
-
+import { resetremainingSecond } from 'src/store/reducers/showRemainingSeconds'
+import { useEffect } from 'react'
+import userImg from '../../../assets/images/user.svg'
 const SelfLearningShowScore = ({
     t,
     score,
@@ -28,7 +30,7 @@ const SelfLearningShowScore = ({
     reviewAnswer,
     playAgain,
     nextlevel,
-goBack
+    goBack
 }) => {
 
     const navigate = useRouter()
@@ -38,6 +40,10 @@ goBack
     const websettingsdata = useSelector(websettingsData);
 
     const themecolor = websettingsdata && websettingsdata?.primary_color
+
+    const remaining = useSelector(state => state.showSeconds.remainingSecond)
+
+    const dispatch = useDispatch()
 
     // store data get
     const userData = useSelector(state => state.User)
@@ -51,6 +57,19 @@ goBack
     }
 
     let newdata = Math.round(percentage)
+
+    // to cleare remaining seconds
+
+    const clear = () => {
+        dispatch(resetremainingSecond(0))
+    }
+    useEffect(() => {
+
+
+        return () => {
+            clear()
+        }
+    }, [])
 
     return (
         <>
@@ -79,7 +98,7 @@ goBack
                                         })}
                                     >
                                         <img
-                                            src={userData?.data && userData?.data?.profile ? userData?.data?.profile : '/images/user.svg'}
+                                            src={userData?.data && userData?.data?.profile ? userData?.data?.profile : userImg.src}
                                             alt='user'
                                             className='showscore-userprofile'
                                             onError={imgError}
@@ -98,16 +117,16 @@ goBack
                                 <h1 className='winlos percentage'>{newdata}%</h1>
                             </div>
                             <h4 className='winlos'>
-                                <b>{t(`Wow, Fantastic Job!`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
+                                <b>{t(`wow_fantastic_job`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
                             </h4>
-                            <h5>{t(`you've achieved mastery`)}</h5>
+                            <h5>{t(`youve_achieved_mastery`)}</h5>
                         </>
                     ) : (
                         <>
                             <h4 className='winlos losText'>
-                                <b>{t(`Good Effort!`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
+                                <b>{t(`good_effort`)} <span>{t(`${userData?.data && userData?.data?.name}`)}</span></b>
                             </h4>
-                            <h5>{t(`Keep Learning`)}</h5>
+                            <h5>{t(`keep_learning`)}</h5>
 
                             <span className='percentage'>{newdata} %</span>
                         </>
@@ -122,7 +141,7 @@ goBack
                     {coins ? (
                         <div className="getCoins">
                             <span className='numbr'>+ {coins ? coins : '0'}</span>
-                            <span className='text'>{t("Coins")}</span>
+                            <span className='text'>{t("coins")}</span>
                         </div>
                     ) : null}
                 </> : null}
@@ -138,6 +157,9 @@ goBack
                         <img src={crossIcon.src} alt="" />
                         {quizEndData?.InCorrectanswer}
                     </span>
+                </div>
+                <div className="rightWrongAnsDiv">
+                    <span >{remaining}  {t("time")}</span>
                 </div>
 
                 {showCoinandScore ? <>
@@ -156,7 +178,7 @@ goBack
                     nextlevel ? (
                         <div className='fifty__fifty col-12 col-sm-6 col-md-3 custom-dash'>
                             <button className='btn btn-primary' onClick={onNextLevelClick}>
-                                {t('Next Level')}
+                            {`${t('next')} ${t('level')} `}
                             </button>
                         </div>
                     ) : (
@@ -165,7 +187,7 @@ goBack
                 ) : playAgain ? (
                     <div className='fifty__fifty col-12 col-sm-6 col-md-3 custom-dash'>
                         <button className='btn btn-primary' onClick={onPlayAgainClick}>
-                            {t('Play Again')}
+                            {t('play_again')}
                         </button>
                     </div>
                 ) : (
@@ -175,7 +197,7 @@ goBack
                 {reviewAnswer ? (
                     <div className='audience__poll col-12 col-sm-6 col-md-3 custom-dash'>
                         <button className='btn btn-primary' onClick={onReviewAnswersClick}>
-                            {t('Review Answers')}
+                            {t('review_answers')}
                         </button>
                     </div>
                 ) : (
@@ -183,12 +205,12 @@ goBack
                 )}
                 <div className='resettimer col-12 col-sm-6 col-md-3 custom-dash'>
                     <button className='btn btn-primary' onClick={goBack}>
-                        {t('Back')}
+                        {t('back')}
                     </button>
                 </div>
                 <div className='skip__questions col-12 col-sm-6 col-md-3 custom-dash'>
                     <button className='btn btn-primary' onClick={goToHome}>
-                        {t('Home')}
+                        {t('home')}
                     </button>
                 </div>
             </div>

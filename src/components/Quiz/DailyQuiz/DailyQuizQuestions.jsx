@@ -4,21 +4,21 @@ import toast from 'react-hot-toast'
 import PropTypes from 'prop-types'
 import Lifelines from 'src/components/Common/Lifelines'
 import { withTranslation } from 'react-i18next'
-import ProgressBar from 'react-bootstrap/ProgressBar';
 
 import {
   decryptAnswer,
-  imgError,
   showAnswerStatusClass,
   audioPlay,
 } from 'src/utils'
 import { useDispatch, useSelector } from 'react-redux'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
-import rightTickIcon from 'src/assets/images/check-circle-score-screen.svg'
-import crossIcon from 'src/assets/images/x-circle-score-screen.svg'
 import { LoadQuizZoneCompletedata, percentageSuccess, questionsDataSuceess, resultTempDataSuccess } from 'src/store/reducers/tempDataSlice'
 import Timer from 'src/components/Common/Timer'
 import { useRouter } from 'next/router'
+import QuestionTopSection from 'src/components/view/common/QuestionTopSection'
+import QuestionMiddleSectionOptions from 'src/components/view/common/QuestionMiddleSectionOptions'
+import { setSecondSnap, setTotalSecond } from 'src/store/reducers/showRemainingSeconds';
+
 
 const DailyQuizQuestions = ({
   t,
@@ -31,6 +31,7 @@ const DailyQuizQuestions = ({
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [corrAns, setCorrAns] = useState(0)
   const [inCorrAns, setInCorrAns] = useState(0)
+  
   const child = useRef(null)
   const scroll = useRef(null)
   const fiftyFiftyClicked = useRef(false)
@@ -66,14 +67,24 @@ const DailyQuizQuestions = ({
       child?.current?.resetTimer()
     } else {
       dispatch(questionsDataSuceess(questions));
-      await onQuestionEnd()
+
+      let questionsLength
+      if (skipQuestionClicked.current === true) {
+        questionsLength = questions.length - 1
+      }else{
+        questionsLength = questions.length 
+      }
+      console.log(questionsLength);
+      await onQuestionEnd(questionsLength)
     }
   }
 
-  const onQuestionEnd = async () => {
+  const onQuestionEnd = async (questionsLength) => {
+    console.log(questionsLength);
+    
     const tempData = {
-        totalQuestions: questions?.length,
-        question: questions,
+      totalQuestions: questionsLength,
+      question: questions,
     };
 
 
@@ -81,7 +92,7 @@ const DailyQuizQuestions = ({
     // Dispatch the action with the data
     dispatch(resultTempDataSuccess(tempData));
     await navigate.push("/quiz-play/daily-quiz-dashboard/result")
-}
+  }
 
   // button option answer check
   const handleAnswerOptionClick = selected_option => {
@@ -123,6 +134,10 @@ const DailyQuizQuestions = ({
       dispatch(percentageSuccess(result_score))
     }
 
+    let seconds = child.current.getMinuteandSeconds()
+    dispatch(setTotalSecond(timerSeconds))
+    dispatch(setSecondSnap(seconds))
+
   }
 
   useEffect(() => {
@@ -149,7 +164,7 @@ const DailyQuizQuestions = ({
 
     let update_questions = [...questions]
     if (update_questions[currentQuestion].question_type === '2') {
-      toast.error(t('This Lifeline is not allowed'))
+      toast.error(t('lifeline_not_allowed'))
       return false;
     }
     let all_option = ['optiona', 'optionb', 'optionc', 'optiond', 'optione']
@@ -221,7 +236,7 @@ const DailyQuizQuestions = ({
       all_option = ['a', 'b']
     } else {
       all_option = ['a', 'b', 'c', 'd']
-      if (systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione) {
+      if (questions[currentQuestion].optione !== "") {
         if (optione !== "") {
           all_option.push("e");
         }
@@ -256,7 +271,7 @@ const DailyQuizQuestions = ({
     // Check if there are negative indices and set it to 0 to prevent errors
     if (currentQuestion <= 0) {
       setCurrentQuestion(0);
-    }
+    }    
     setNextQuestion()
   }
 
@@ -275,30 +290,7 @@ const DailyQuizQuestions = ({
     <React.Fragment>
       <div className='dashboardPlayUppDiv text-end p-2 pb-0'>
 
-        <div className="leftSec">
-          <div className="coins">
-            <span>{t("Coins")} : {userData && userData?.data?.coins}</span>
-          </div>
-
-          <div className="rightWrongAnsDiv">
-            <span className='rightAns'>
-              <img src={rightTickIcon.src} alt="" />
-              {corrAns}
-            </span>
-
-            <span className='wrongAns'>
-              <img src={crossIcon.src} alt="" />
-              {inCorrAns}
-            </span>
-          </div>
-        </div>
-
-        <div className="rightSec">
-          <div className="rightWrongAnsDiv correctIncorrect">
-            <span className='rightAns'>
-              {currentQuestion + 1} - {questions?.length}</span>
-          </div>
-        </div>
+        <QuestionTopSection corrAns={corrAns} inCorrAns={inCorrAns} currentQuestion={currentQuestion} questions={questions} showAnswers={true} />
 
       </div>
       <div className='questions' ref={scroll}>
@@ -315,160 +307,8 @@ const DailyQuizQuestions = ({
         </div>
 
 
-        <div className='content__text'>
-          <p className='question-text'>{questions[currentQuestion].question}</p>
-        </div>
+        <QuestionMiddleSectionOptions questions={questions} currentQuestion={currentQuestion} setAnswerStatusClass={setAnswerStatusClass} handleAnswerOptionClick={handleAnswerOptionClick} probability={true} latex={true} />
 
-        {questions[currentQuestion].image ? (
-          <div className='imagedash'>
-            <img src={questions[currentQuestion].image} onError={imgError} alt='' />
-          </div>
-        ) : (
-          ''
-        )}
-
-        {/* options */}
-        <div className='row optionsWrapper'>
-          {questions[currentQuestion].optiona ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('a')}`}
-                  onClick={e => handleAnswerOptionClick('a')}
-                >
-                  <div className='row'>
-                    <div className='col'>{questions[currentQuestion].optiona}</div>
-
-                  </div>
-                </button>
-              </div>
-              {questions[currentQuestion].probability_a ? (
-                <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_a}
-                  <div className="progressBarWrapper">
-                    <ProgressBar now={questions[currentQuestion].probability_a.replace('%', '')} visuallyHidden />;
-                  </div></div>
-              ) : (
-                ''
-              )}
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].optionb ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('b')}`}
-                  onClick={e => handleAnswerOptionClick('b')}
-                >
-                  <div className='row'>
-                    <div className='col'>{questions[currentQuestion].optionb}</div>
-
-                  </div>
-                </button>
-
-              </div>
-              {questions[currentQuestion].probability_b ? (
-                <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_b}
-                  <div className="progressBarWrapper">
-                    <ProgressBar now={questions[currentQuestion].probability_b.replace('%', '')} visuallyHidden />;
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].question_type === '1' ? (
-            <>
-              {questions[currentQuestion].optionc ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('c')}`}
-                      onClick={e => handleAnswerOptionClick('c')}
-                    >
-                      <div className='row'>
-                        <div className='col'>{questions[currentQuestion].optionc}</div>
-
-                      </div>
-                    </button>
-                  </div>
-                  {questions[currentQuestion].probability_c ? (
-                    <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_c}
-                      <div className="progressBarWrapper">
-                        <ProgressBar now={questions[currentQuestion].probability_c.replace('%', '')} visuallyHidden />;
-                      </div></div>
-                  ) : (
-                    ''
-                  )}
-                </div>
-              ) : (
-                ''
-              )}
-              {questions[currentQuestion].optiond ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('d')}`}
-                      onClick={e => handleAnswerOptionClick('d')}
-                    >
-                      <div className='row'>
-                        <div className='col'>{questions[currentQuestion].optiond}</div>
-
-                      </div>
-                    </button>
-
-                  </div>
-                  {questions[currentQuestion].probability_d ? (
-                    <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_d}
-                      <div className="progressBarWrapper">
-                        <ProgressBar now={questions[currentQuestion].probability_d.replace('%', '')} visuallyHidden />
-                      </div>
-                    </div>
-                  ) : (
-                    ''
-                  )}
-                </div>
-              ) : (
-                ''
-              )}
-
-              {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
-                <div className='row d-flex justify-content-center mob_resp_e'>
-                  <div className='col-md-6 col-12'>
-                    <div className='inner__questions'>
-                      <button
-                        className={`btn button__ui w-100 ${setAnswerStatusClass('e')}`}
-                        onClick={e => handleAnswerOptionClick('e')}
-                      >
-                        <div className='row'>
-                          <div className='col'>{questions[currentQuestion].optione}</div>
-
-                        </div>
-                      </button>
-                    </div>
-                    {questions[currentQuestion].probability_e ? (
-                      <div className='col text-end audiencePollDiv'>{questions[currentQuestion].probability_e}
-                        <div className="progressBarWrapper">
-                          <ProgressBar now={questions[currentQuestion].probability_e.replace('%', '')} visuallyHidden />
-                        </div>
-                      </div>
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-            </>
-          ) : (
-            ''
-          )}
-        </div>
         {showLifeLine ? (
           <>
 
@@ -502,7 +342,6 @@ DailyQuizQuestions.propTypes = {
 
 DailyQuizQuestions.defaultProps = {
   showLifeLine: true,
-  showBookmark: true
 }
 
 export default withTranslation()(DailyQuizQuestions)

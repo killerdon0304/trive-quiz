@@ -8,10 +8,9 @@ import errorimg from "src/assets/images/error.svg"
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 
 const UnlockLevel = data => {
-
   const router = useRouter()
   const handleLockClick = () => {
-    toast.error(t('This Level is Locked. Play previous levels to unlock'))
+    toast.error(t('play_previous_to_unlock'))
   }
 
 
@@ -62,7 +61,7 @@ const UnlockLevel = data => {
                                 </div>
                                 <span className='cardLevelQues'>
                                   {
-                                    data?.level?.level_data[i]?.no_of_ques <= 1 ? t("Question") : t("Questions")
+                                    data?.level?.level_data[i]?.no_of_ques <= 1 ? t("Question") : t("questions")
                                   } : {data?.level?.level_data[i]?.no_of_ques}
                                 </span>
                               </div>
@@ -80,7 +79,7 @@ const UnlockLevel = data => {
                               </span>
                               <span className='cardLevelQues'>
                                 {
-                                  data?.level?.level_data[i]?.no_of_ques <= 1 ? t("Question") : t("Questions")
+                                  data?.level?.level_data[i]?.no_of_ques <= 1 ? t("Question") : t("questions")
                                 } : {data?.level?.level_data[i]?.no_of_ques}
                               </span>
                             </div>
@@ -95,7 +94,7 @@ const UnlockLevel = data => {
           ) : (
             <div className='text-center mt-4 commonerror'>
               <img src={errorimg.src} title='wrteam' className='error_img' />
-              <p>{t('No Levels Data Found')}</p>
+              <p>{t('no_levels_data_found')}</p>
             </div>
           )}
         </>

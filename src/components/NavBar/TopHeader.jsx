@@ -28,10 +28,8 @@ import { websettingsData } from 'src/store/reducers/webSettings'
 import { loadNotification, notifiationTotal, notificationData, updateTotal } from 'src/store/reducers/notificationSlice'
 import { Dropdown, Menu } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
-import { getNotificationsApi } from 'src/utils/api'
-import useSWR from 'swr'
-import { notificationApi } from 'src/hooks/notificationsApi'
-import moment from 'moment'
+import { signOut } from 'firebase/auth'
+import userImg from '../../assets/images/user.svg'
 
 const MySwal = withReactContent(Swal)
 
@@ -87,7 +85,7 @@ const TopHeader = ({ t }) => {
 
   //api render
   useEffect(() => {
-    if (router.pathname === "/") {
+    if (router.pathname === "/" || router.pathname === "/quiz-play") {
       loadLanguages(
         '',
         response => {
@@ -101,18 +99,21 @@ const TopHeader = ({ t }) => {
           }
         },
         error => {
-          toast.error(error)
+          console.log(error)
+          if (error === "102") {
+            setCurrentLanguage("English (US)", "en", "14")
+          }
         }
       )
     }
-  }, [router,selectcurrentLanguage])
+  }, [router, selectcurrentLanguage])
 
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState(10);
 
   useEffect(() => {
     if (isLogin()) {
-      if (router.pathname === "/" || router.pathname === "/all-games") {
+      if (router.pathname === "/" || router.pathname === "/quiz-play") {
         loadNotification({
           order: "DESC", offset: offset, limit: limit, onSuccess: (res) => {
             let response = res.total
@@ -128,28 +129,6 @@ const TopHeader = ({ t }) => {
     }
   }, [limit])
 
-  // const isFetchNotif = router.pathname === "/" || router.pathname === "/all-games"
-  // const fetchNotifications = async () => {
-  //   try {
-  //     console.log('hi')
-  //     const res = await notificationApi.getNotificationsApi('DESC', offset, limit)
-  //     const response = res.total
-  //     dispatch(updateTotal(response))
-  //   } catch (error) {
-
-  //     if (error === "102") {
-  //       dispatch(updateTotal(0))
-  //     }
-  //     console.log(error);
-  //     throw error;
-  //   }
-  // }
-
-  // const { data: notificationsData, error: notificationError } = useSWR(isFetchNotif ? ['notifications', limit] : null, fetchNotifications, {
-  //   refreshInterval: 0,
-  //   revalidateOnMount: true,
-  //   revalidateOnFocus: false,
-  // });
 
 
   // sign out
@@ -160,7 +139,7 @@ const TopHeader = ({ t }) => {
 
   const handleConfirmLogout = () => {
     logout()
-    auth.signOut()
+    signOut(auth)
     router.push('/')
     setLogoutModal(false)
   }
@@ -189,10 +168,10 @@ const TopHeader = ({ t }) => {
   const profileGuest = e => {
     e.preventDefault()
     MySwal.fire({
-      text: t('To access this feature you need to Login!!'),
+      text: t('login_first'),
       icon: 'warning',
       showCancelButton: true,
-      cancelButtonText: t('Cancel'),
+      cancelButtonText: t('cancel'),
       customClass: {
         confirmButton: 'Swal-confirm-buttons',
         cancelButton: "Swal-cancel-buttons"
@@ -218,7 +197,7 @@ const TopHeader = ({ t }) => {
   const handleMouserEnter = () => {
     const tooltipElement = document.querySelector('[data-tooltip-id="custom-my-tooltip"]')
     if (tooltipElement) {
-      tooltipElement.setAttribute('data-tooltip-content', `${t('Notification')}`)
+      tooltipElement.setAttribute('data-tooltip-content', `${t('notification')}`)
     }
   }
 
@@ -235,10 +214,10 @@ const TopHeader = ({ t }) => {
   const profileMenu = (
     <Menu>
       <Menu.Item onClick={() => router.push('/profile')}>
-        {t('Profile')}
+        {t('profile')}
       </Menu.Item>
       <Menu.Item onClick={handleSignout}>
-        {t('Logout')}
+        {t('logout')}
       </Menu.Item>
     </Menu>
   );
@@ -255,7 +234,7 @@ const TopHeader = ({ t }) => {
         <div className="container">
           <div className='row justify-content-between align-items-center'>
             <div className='col-md-6 col-12'>
-              {systemconfig && systemconfig.language_mode === '1' && router.pathname === "/" ? (
+              {systemconfig && systemconfig.language_mode === '1' && (router.pathname === "/" || router.pathname === "/quiz-play") ? (
                 <div className='dropdown__language'>
                   <Dropdown trigger={['hover']} overlay={menu} >
                     <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
@@ -291,7 +270,7 @@ const TopHeader = ({ t }) => {
                             src={img6.src}
                             alt='profile'
                           />
-                          <button id='dropdown-basic-button' className='btn btn-primary dropdown__login'>{`${t('Hello Guest')}`}</button>
+                          <button id='dropdown-basic-button' className='btn btn-primary dropdown__login'>{`${t('hello_guest')}`}</button>
                           <button className='btn btn-primary custom_button_right ms-2' onClick={e => guestLogout(e)}>
                             <IoExitOutline />
                           </button>
@@ -300,12 +279,12 @@ const TopHeader = ({ t }) => {
                         <>
                           <span>
                             <Link href='/auth/login' className='login'>
-                              {t('Login')}
+                              {t('login')}
                             </Link>
                           </span>
                           <span>
                             <Link href='/auth/sign-up' className='signup'>
-                              {t('Sign Up')}
+                              {t('sign_up')}
                             </Link>
                           </span>
                         </>
@@ -329,10 +308,10 @@ const TopHeader = ({ t }) => {
                     ''
                   )}
                   <Modal
-                    title={t('Notification')}
+                    title={t('notification')}
                     width={800}
                     centered
-                    visible={notificationmodal}
+                    open={notificationmodal}
                     onOk={() => setNotificationModal(false)}
                     onCancel={() => setNotificationModal(false)}
                     footer={null}
@@ -344,7 +323,7 @@ const TopHeader = ({ t }) => {
                           <div key={key} className='outer_noti'>
                             <img
                               className='noti_image'
-                              src={data.image ? data.image : '/images/user.svg'}
+                              src={data.image ? data.image : userImg.src}
                               alt='notication'
                               id='image'
                               onError={imgError}
@@ -361,13 +340,13 @@ const TopHeader = ({ t }) => {
                       <div className="noDataDiv">
                         <img src={noNotificationImg.src} alt="" />
                         {/* <h5 className='text-center text-black-50'>
-                        {t('No Data found')}</h5> */}
+                        {t('no_data_found')}</h5> */}
                       </div>
                     )}
                     {notificationtotal && notificationtotal > 10 ? (
                       <div className="text-center mt-4">
                         <button className="btn btn-primary" onClick={(e) => handleMoreNotifications(e)}>
-                          {t("More")}
+                          {t("more")}
                         </button>
                       </div>
                     ) : null}
@@ -385,7 +364,7 @@ const TopHeader = ({ t }) => {
       <Modal
         maskClosable={false}
         centered
-        visible={logoutModal}
+        open={logoutModal}
         onOk={() => setLogoutModal(false)}
         onCancel={() => {
           setLogoutModal(false)
@@ -395,13 +374,13 @@ const TopHeader = ({ t }) => {
       >
         <div className="logoutWrapper">
           <span><img src={warningImg.src} alt="" /></span>
-          <span className='headline'>{t("Logout!")}</span>
-          <span className='confirmMsg'>{t("Are you sure you want to")}</span>
+          <span className='headline'>{t("logout")}</span>
+          <span className='confirmMsg'>{t("sure_logout")}</span>
         </div>
 
         <div className="logoutBtns">
-          <span className='yes' onClick={handleConfirmLogout}>{t("Yes,Logout")}</span>
-          <span className='no' onClick={() => setLogoutModal(false)}>{t("Keep Login")}</span>
+          <span className='yes' onClick={handleConfirmLogout}>{t("yes_logout")}</span>
+          <span className='no' onClick={() => setLogoutModal(false)}>{t("keep_login")}</span>
         </div>
       </Modal>
     </React.Fragment>

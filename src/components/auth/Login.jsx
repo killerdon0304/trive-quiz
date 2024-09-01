@@ -1,6 +1,7 @@
 "use client"
-import React, { useState, useRef } from 'react'
-import { FaEnvelope, FaLock, FaMobileAlt } from 'react-icons/fa'
+import React, { useState, useRef,} from 'react'
+import { FaLock, FaMobileAlt } from 'react-icons/fa'
+import { HiOutlineMail } from "react-icons/hi";
 import { FcGoogle } from 'react-icons/fc'
 import { Form, Button } from 'react-bootstrap'
 import toast from 'react-hot-toast'
@@ -14,6 +15,9 @@ import { t } from 'i18next'
 import { withTranslation } from 'react-i18next'
 import dynamic from 'next/dynamic'
 import { handleFirebaseAuthError } from 'src/utils'
+import { GoogleAuthProvider, getAdditionalUserInfo, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
+import { sysConfigdata } from 'src/store/reducers/settingsSlice'
+import { useSelector } from 'react-redux'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const Login = () => {
@@ -25,7 +29,7 @@ const Login = () => {
 
     const [Icon, setIcon] = useState(<BsEyeSlash />)
 
-    const { auth, googleProvider } = FirebaseData()
+    const { auth } = FirebaseData()
 
     const [profile, setProfile] = useState({
         name: '',
@@ -44,10 +48,11 @@ const Login = () => {
 
     const router = useRouter()
 
+    const systemconfig = useSelector(sysConfigdata)  
     // signin
     const signin = async (email, password) => {
         try {
-            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
             return userCredential;
         } catch (error) {
             throw error;
@@ -85,16 +90,22 @@ const Login = () => {
                             friends_code,
                             success => {
                                 setNewUserScreen(false)
-                                toast.success(t('Successfully Login'))
+                                toast.success(t('successfully_login'))
                                 if (response.message === '131') {
                                     //If new User then show the Update Profile Screen
                                     setNewUserScreen(true)
                                 } else {
-                                    router.push('/all-games')
+                                    router.push('/quiz-play')
                                 }
                             },
                             error => {
-                                toast.error(error)
+                                if (error === "126") {
+                                    toast.error(t("ac_deactive"));
+                                }else{
+                                    toast.error(`${t('Please ')}${t('try_again')}`);
+                                    console.log("signin handleSignin" ,error);
+                                    
+                                }
                             }
                         )
                         setLoading(false)
@@ -104,7 +115,7 @@ const Login = () => {
                     }
                 )
             } else {
-                toast.error(t('Please Verify your Email First'))
+                toast.error(t('ver_email_first'))
                 setLoading(false)
             }
         } catch (error) {
@@ -116,9 +127,9 @@ const Login = () => {
     //google sign in
     const signInWithGoogle = async (e) => {
         e.preventDefault();
-
+        const provider = new GoogleAuthProvider();
         try {
-            const response = await auth.signInWithPopup(googleProvider);
+            const response = await signInWithPopup(auth, provider);
             const { user } = response;
 
             setProfile(user);
@@ -136,7 +147,7 @@ const Login = () => {
             const name = null;
             const fcm_id = null;
             const friends_code = null;
-
+            const { isNewUser } = getAdditionalUserInfo(response)
             register(
                 firebase_id,
                 'gmail',
@@ -148,16 +159,22 @@ const Login = () => {
                 friends_code,
                 (success) => {
                     setLoading(false);
-                    toast.success(t('Successfully Login'));
+                    toast.success(t('successfully_login'));
 
-                    if (response.additionalUserInfo.isNewUser) {
+                    if (isNewUser) {
                         setNewUserScreen(true); // If new User, show the Update Profile Screen
                     } else {
-                        router.push('/all-games');
+                        router.push('/quiz-play');
                     }
                 },
                 (error) => {
-                    toast.error(t('Please Try again'));
+                  if (error === "126") {
+                        toast.error(t("ac_deactive"));
+                    }else{
+                        toast.error(`${t('Please ')}${t('try_again')}`);
+                        console.log("logIn signInWithGoogle" , error);
+                        
+                    }
                 }
             );
         } catch (error) {
@@ -184,79 +201,84 @@ const Login = () => {
                         <div className='row morphisam'>
                             <div className='col-12 border-line position-relative'>
                                 <div className='inner__login__form outerline'>
-                                    <h3 className='mb-2 text-capitalize '>{t('Login')}</h3>
+                                    <h3 className='mb-2 text-capitalize '>{t('login')}</h3>
 
                                     <div className='social__icons'>
                                         <ul>
-                                            <li>
+                                            {systemconfig.gmail_login === '1' && <li>
                                                 <button className='social__icons_btn' onClick={signInWithGoogle}>
-                                                    <FcGoogle /> {t("Login with Google")}
+                                                    <FcGoogle /> {t("login_with_google")}
                                                 </button>
-                                            </li>
-                                            <li>
+                                            </li>}
+                                            {systemconfig.phone_login === '1' && <li>
                                                 <button
                                                     className='social__icons_btn'
                                                     onClick={() => {
                                                         router.push('/auth/otp-verify')
                                                     }}
                                                 >
-                                                    <FaMobileAlt /> {t("Login with Phone")}
+                                                    <FaMobileAlt /> {t("login_phone")}
                                                 </button>
-                                            </li>
+                                            </li>}
                                         </ul>
                                     </div>
 
-                                    <div className='continue'>
-                                        <span className='line'></span>
-                                        <p>{t("Or continue with Email")}</p>
-                                        <span className='line'></span>
-                                    </div>
+                                    {(systemconfig.phone_login === '1' || systemconfig.gmail_login === '1') && systemconfig.email_login === '1' &&
 
-                                    <Form onSubmit={e => handleSignin(e)}>
-                                        <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicEmail'>
-                                            <Form.Control
-                                                type='email'
-                                                placeholder={t('Enter Your Email')}
-                                                className='inputelem'
-                                                ref={emailRef}
-                                                required={true}
-                                            />
-                                            <span className='emailicon'>
-                                                <FaEnvelope />
-                                            </span>
-                                        </Form.Group>
-                                        <Form.Group className='position-relative d-inline-block w-100' controlId='formBasicPassword'>
-                                            <Form.Control
-                                                type={type}
-                                                placeholder={t('Enter Your Password')}
-                                                className='inputelem'
-                                                ref={passwordRef}
-                                                required={true}
-                                            />
-                                            <span className='emailicon2'>
-                                                <FaLock />
-                                            </span>
-                                            <span onClick={handletoggle} className='password_icon'>
-                                                {Icon}
-                                            </span>
-                                        </Form.Group>
-                                        <div className='text-end text-small mb-3 resetpassword'>
-                                            <small>
-                                                <Link href={'/auth/reset-password'}>{t('Forgot Password')} ?</Link>
-                                            </small>
-                                        </div>
-                                        <Button variant='primary w-100 mb-3' className='submit_login' type='submit' disabled={loading}>
-                                            {loading ? t('Please Wait') : t('Login')}
-                                        </Button>
-                                    </Form>
-                                    <p className='text-center'>
-                                        {t('Dont have account')}&nbsp;
+                                        <div className='continue'>
+                                            <span className='line'></span>
+                                            <p>{t("or_continue_with_email")}</p>
+                                            <span className='line'></span>
+                                        </div>}
+
+                                    {systemconfig.email_login === '1' &&
+                                        <Form onSubmit={e => handleSignin(e)}>
+                                            <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicEmail'>
+                                                <Form.Control
+                                                    type='email'
+                                                    placeholder={t('enter_email')}
+                                                    className='inputelem'
+                                                    ref={emailRef}
+                                                    required={true}
+                                                />
+                                                <span className='emailicon'>
+                                                <HiOutlineMail />
+                                                </span>
+                                            </Form.Group>
+                                            <Form.Group className='position-relative d-inline-block w-100' controlId='formBasicPassword'>
+                                                <Form.Control
+                                                    type={type}
+                                                    placeholder={t('enter_password')}
+                                                    className='inputelem'
+                                                    ref={passwordRef}
+                                                    required={true}
+                                                />
+                                                <span className='emailicon2'>
+                                                    <FaLock />
+                                                </span>
+                                                <span onClick={handletoggle} className='password_icon'>
+                                                    {Icon}
+                                                </span>
+                                            </Form.Group>
+                                            <div className='text-end text-small mb-3 resetpassword'>
+                                                <small>
+                                                    <Link href={'/auth/reset-password'}>{t('forgot_pass')} ?</Link>
+                                                </small>
+                                            </div>
+                                            <Button variant='primary w-100 mb-3' className='submit_login' type='submit' disabled={loading}>
+                                                {loading ? t('please_wait') : t('login')}
+                                            </Button>
+                                        </Form>}
+                                    {(systemconfig.email_login === '0' && systemconfig.gmail_login === '0' && (systemconfig.phone_login === '1'))
+                                    || (systemconfig.email_login === '0' && systemconfig.gmail_login === '1' && systemconfig.phone_login === '0') ? '':
+                                        <p className='text-center'>
+                                        {t('dont_have_acc')}&nbsp;
                                         <span>
                                             <Link href='/auth/sign-up' replace className='text-dark auth-signup'>
-                                                {t('Sign Up')}
+                                                {t('sign_up')}
                                             </Link>
                                         </span>
-                                    </p>
+                                    </p>}
                                 </div>
                             </div>
                         </div>

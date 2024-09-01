@@ -18,7 +18,7 @@ const ContactUs = ({ t }) => {
 
     return (
         <Layout>
-            <Breadcrumb title={t('Contact Us')} content="" contentTwo="" />
+            <Breadcrumb title={t('contact_us')} content="" contentTwo="" />
             <div className='Instruction'>
                 <div className='container'>
                     <div className='row morphisam'>

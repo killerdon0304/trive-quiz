@@ -12,9 +12,8 @@ import { selectCurrentLanguage } from 'src/store/reducers/languageSlice'
 import { updateUserDataInfo } from 'src/store/reducers/userSlice'
 import { battleDataClear, groupbattledata, LoadGroupBattleData } from 'src/store/reducers/groupbattleSlice'
 import { Loadtempdata, playwithfreind, reviewAnswerShowSuccess } from 'src/store/reducers/tempDataSlice'
-import { imgError, roomCodeGenerator } from 'src/utils'
+import { imgError, roomCodeGenerator, truncate } from 'src/utils'
 import { settingsData, sysConfigdata } from 'src/store/reducers/settingsSlice'
-import FirebaseData from 'src/utils/Firebase'
 import { Form } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
@@ -24,11 +23,16 @@ import ShareMenu from 'src/components/Common/ShareMenu';
 import { t } from 'i18next'
 import coinimg from "src/assets/images/coin.svg"
 import vsimg from "src/assets/images/vs.svg"
-
+import { getFirestore, collection, doc, onSnapshot, getDocs, query, serverTimestamp, addDoc, updateDoc, deleteDoc, where, runTransaction, getDoc } from 'firebase/firestore';
+import OTPInput from 'react-otp-input'
+import Image from 'next/image'
+import { baseRoomCode, getFirestoreDocIdForRoomcode, getRoomCode } from 'src/store/reducers/messageSlice'
+import cat_placeholder_img from "../../../assets/images/Elite Placeholder.svg"
 const PlaywithFriendBattle = () => {
 
   const MySwal = withReactContent(Swal)
 
+  const db = getFirestore();
 
   const dispatch = useDispatch()
 
@@ -47,16 +51,17 @@ const PlaywithFriendBattle = () => {
 
   const getData = useSelector(playwithfreind)
 
+  const firestoreRoomData = useSelector(state => state.message)
+
+  const [joinCode, setJoincode] = useState('');
+
   const TabPane = Tabs.TabPane
 
   const [category, setCategory] = useState({
     all: '',
-    selected: '',
+    category_data: '',
     category_name: ""
   })
-
-  const inputRef = useRef()
-
   const [loading, setLoading] = useState(true)
 
   const [shouldGenerateRoomCode, setShouldGenerateRoomCode] = useState(false)
@@ -67,8 +72,6 @@ const PlaywithFriendBattle = () => {
 
   const [isButtonClicked, setIsButtonClicked] = useState(false)
 
-  const [inputCode, setInputCode] = useState(false)
-
   const [showStart, setShowStart] = useState(false)
 
   const [dociddelete, setDocidDelete] = useState(false)
@@ -77,9 +80,19 @@ const PlaywithFriendBattle = () => {
 
   const [joinuserpopup, setJoinUserPopup] = useState(false)
 
+  const [EntryFeeCoin, setEntryFeeCoin] = useState(0)
+
   const [createdByroom, setCreatedByRoom] = useState()
 
-  const { db, firebase } = FirebaseData()
+  const [showCategoryNameOnJoinRoomS, setShowCategoryNameOnJoinRoomS] = useState('')
+
+  const [roomCodeForJoiner, setRoomCodeForJoiner] = useState();
+
+  const [fireCatId, setFireCatId] = useState();
+
+  const [joinImage, setJoinImg] = useState();
+
+  const [isloading, setIsLoading] = useState()
 
   const enteryFee = groupBattledata
 
@@ -87,7 +100,7 @@ const PlaywithFriendBattle = () => {
 
   let languageid = getData.language_id
 
-  let category_selected = systemconfig && systemconfig?.battle_mode_one_category == '1' ? category?.selected : ''
+  let category_selected = systemconfig && systemconfig?.battle_mode_one_category == '1' ? category?.category_data?.id : ''
 
   let battle_mode_one_entry_coin_data = systemconfig && systemconfig?.battle_mode_one_entry_coin
 
@@ -99,6 +112,7 @@ const PlaywithFriendBattle = () => {
 
   let usercoins = userData && userData?.data?.coins
 
+  // let cat_placeholder_img = '../../../assets/images/Elite Placeholder.svg'
 
   let selectedcoins = Number(selectedCoins.selected)
 
@@ -112,12 +126,14 @@ const PlaywithFriendBattle = () => {
     roomid: null
   })
 
+
+
   // get category data
   const getAllData = () => {
-    categoriesApi(
-      1,
-      2,
-      response => {
+    categoriesApi({
+      type: 1,
+      sub_type: 2,
+      onSuccess: response => {
         let categoires = response.data
         // Filter the categories based on has_unlocked and is_premium
         const filteredCategories = categoires.filter(category => {
@@ -126,16 +142,16 @@ const PlaywithFriendBattle = () => {
         setCategory({
           ...category,
           all: filteredCategories,
-          selected: filteredCategories[0].id,
+          category_data: filteredCategories[0],
           category_name: filteredCategories[0].category_name
         })
         setLoading(false)
       },
-      error => {
+      onError: error => {
         setLoading(false)
         console.log(error)
       }
-    )
+    })
   }
 
   // database collection
@@ -150,9 +166,9 @@ const PlaywithFriendBattle = () => {
     questionlanguageId
   ) => {
     try {
-      let documentreference = db.collection('battleRoom').add({
+      let documentreference = await addDoc(collection(db, 'battleRoom'), {
         categoryId: categoryId,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: serverTimestamp(),
         createdBy: uid,
         entryFee: entryFee ? entryFee : 0,
         languageId: questionlanguageId,
@@ -191,24 +207,28 @@ const PlaywithFriendBattle = () => {
   // delete battle room
   const deleteBattleRoom = async documentId => {
     try {
-      await db.collection('battleRoom').doc(documentId).delete()
+      await deleteDoc(doc(db, "battleRoom", documentId));
     } catch (error) {
-      toast.error(error)
+      toast.error(error);
     }
-  }
+  };
 
   // find room
   const searchBattleRoom = async (languageId, categoryId) => {
     try {
-      let userfind = await db
-        .collection('battleRoom')
-        .where('languageId', '==', languageId)
-        .where('categoryId', '==', categoryId)
-        .where('roomCode', '==', '')
-        .where('user2.uid', '==', '')
-        .get()
+      const q = query(
+        collection(db, 'battleRoom'),
+        where('languageId', '==', languageId),
+        where('categoryId', '==', categoryId),
+        where('roomCode', '==', ''),
+        where('user2.uid', '==', ''),
+      );
 
-      let userfinddata = userfind.docs
+      // Execute the query
+      const userFindSnapshot = await getDocs(q);
+
+
+      let userfinddata = userFindSnapshot.docs
 
       let index = userfinddata.findIndex(elem => {
         return elem.data().createdBy == useruid
@@ -227,6 +247,7 @@ const PlaywithFriendBattle = () => {
 
   // search room
   const searchRoom = async () => {
+    setIsLoading(true)
 
     if (selectedCoins.selected === "") {
       toast.error("Please select coins and enter value in numeric value")
@@ -235,7 +256,7 @@ const PlaywithFriendBattle = () => {
 
     let inputCoincheck = inputText.current.value
     if (Number(inputCoincheck) > Number(usercoins)) {
-      toast.error(t('you dont have enough coins'))
+      toast.error(t('no_enough_coins'))
       return
     }
 
@@ -244,7 +265,7 @@ const PlaywithFriendBattle = () => {
 
       let roomdocid
 
-      if (documents?.length !== 0) {
+      if (documents?.length !== 0 && documents.id) {
         let room = documents
 
         roomdocid = room.id
@@ -254,10 +275,15 @@ const PlaywithFriendBattle = () => {
 
       // await subscribeToBattleRoom(roomdocid);
       LoadGroupBattleData('roomid', roomdocid)
+      setIsLoading(false)
+
     } catch (error) {
+      setIsLoading(false)
+
       toast.error(error)
       console.log(error)
     }
+
   }
 
   // redirect question screen
@@ -276,7 +302,7 @@ const PlaywithFriendBattle = () => {
 
     // battleroom joiing state
     if (usercoins < 0 || usercoins === '0') {
-      toast.error(t('you dont have enough coins'))
+      toast.error(t('no_enough_coins'))
       return
     }
 
@@ -303,20 +329,23 @@ const PlaywithFriendBattle = () => {
 
     return data.id
   }
+  // img from firestore for joiner
+
 
   // joinroom
   const joinRoom = async (name, profile, usernameid, roomcode, coin) => {
+    setRoomCodeForJoiner(roomcode)
     try {
       if (!roomcode) {
         setIsButtonClicked(false)
         setJoinUserPopup(false)
-        toast.error(t('please enter a room code'))
+        toast.error(t('enter_room_code'))
       } else {
         let result = await joinBattleRoomFrd(name, profile, usernameid, roomcode, coin)
         if (typeof result === 'undefined') {
           setIsButtonClicked(false)
           setJoinUserPopup(false)
-          toast.error(t('room code is not valid'))
+          toast.error(t('room_code_not_valid'))
         } else {
           setJoinUserPopup(true)
 
@@ -326,26 +355,24 @@ const PlaywithFriendBattle = () => {
           const status = 1
 
           if (groupBattledata.entryFee > 0) {
-            UserCoinScoreApi(
-              groupBattledata.entryFee,
-              null,
-              null,
-              t('Played Battle'),
-              status,
-              response => {
-                getusercoinsApi(
-                  responseData => {
+            UserCoinScoreApi({
+              coins: groupBattledata.entryFee,
+              title: t('played_battle'),
+              status: status,
+              onSuccess: response => {
+                getusercoinsApi({
+                  onSuccess: responseData => {
                     updateUserDataInfo(responseData.data)
                   },
-                  error => {
+                  onError: error => {
                     console.log(error)
                   }
-                )
+                })
               },
-              error => {
+              onError: error => {
                 console.log(error)
               }
-            )
+            })
           }
         }
       }
@@ -357,10 +384,11 @@ const PlaywithFriendBattle = () => {
   // get userroom
   const getMultiUserBattleRoom = async roomcode => {
     try {
-      let typeBattle = await db.collection('battleRoom').where('roomCode', '==', roomcode).get()
-      return typeBattle
+      const q = query(collection(db, 'battleRoom'), where('roomCode', '==', roomcode));
+      const typeBattle = await getDocs(q);
+      return typeBattle;
     } catch (e) {
-      console.log('error', e)
+      console.log('error', e);
     }
   }
 
@@ -372,27 +400,31 @@ const PlaywithFriendBattle = () => {
 
       // invalid room code
       if (mulituserbattle.docs === '') {
-        toast.error(t('Invalid Room Code'))
+        toast.error(t('invalid_room_code  '))
       }
 
       // // game started code
       if (mulituserbattle.docs[0].data().readyToPlay) {
-        toast.success(t('Game Started'))
+        toast.success(t('game_started'))
       }
 
       // // not enough coins
       // if (mulituserbattle.docs[0].data().entryFee > coin) {
-      //     toast.error("Not enough coins");
+      //     toast.error("no_enough_coins");
       //     return;
       // }
 
       //user2 update
+      let entryfeecoind = mulituserbattle.docs[0].data().entryFee
+      let showCategoryNameOnJoinRoom = mulituserbattle.docs[0].data().categoryName
+      setEntryFeeCoin(entryfeecoind)
+      setShowCategoryNameOnJoinRoomS(showCategoryNameOnJoinRoom)
       let docRef = mulituserbattle.docs[0].ref
 
-      return db.runTransaction(async transaction => {
+      return runTransaction(db, async transaction => {
         let doc = await transaction.get(docRef)
         if (!doc.exists) {
-          toast.error(t('Document does not exist!'))
+          toast.error(t('document_not_exist'))
         }
 
         let userdetails = doc.data()
@@ -429,25 +461,16 @@ const PlaywithFriendBattle = () => {
     inputText.current.value = ''
   }
 
-  // inputfeild data
-  const handlechange = e => {
-    setInputCode(e.target.value)
-    setInputCode(e.target.value)
-    // }
-    setInputCode(e.target.value)
-    // }
-  }
-
   // start button
   const startGame = e => {
     let roomid = groupBattledata.roomID
 
-    let docRef = db.collection('battleRoom').doc(roomid)
+    let docRef = doc(db, "battleRoom", roomid)
 
-    return db.runTransaction(async transaction => {
+    return runTransaction(db, async transaction => {
       let doc = await transaction.get(docRef)
       if (!doc.exists) {
-        toast.error(t('Document does not exist!'))
+        toast.error(t('document_not_exist'))
       }
 
       let userdetails = doc.data()
@@ -460,7 +483,7 @@ const PlaywithFriendBattle = () => {
         })
         // subscribeToBattleRoom(roomid)
       } else {
-        toast.error(t('Player is not join yet'))
+        toast.error(t('player_not_join'))
       }
 
       return doc
@@ -477,12 +500,12 @@ const PlaywithFriendBattle = () => {
   // oncancel creater room popup delete room
   const onCancelbuttondeleteBattleRoom = async documentId => {
 
-    let documentRef = db.collection('battleRoom').doc(documentId)
+    let documentRef = doc(db, "battleRoom", documentId)
 
-    documentRef.onSnapshot(
+    onSnapshot(documentRef,
       { includeMetadataChanges: true },
       doc => {
-        if (doc.exists) {
+        if (doc.exists && doc.data()) {
           let battleroom = doc.data()
 
           let roomid = doc.id
@@ -491,8 +514,9 @@ const PlaywithFriendBattle = () => {
 
           if (useruid == createdby) {
             MySwal.fire({
-              text: t('Room is deleted')
+              text: t('room_deleted')
             })
+            setJoincode("")
             deleteBattleRoom(roomid)
             battleDataClear()
           }
@@ -507,11 +531,12 @@ const PlaywithFriendBattle = () => {
   // snapshot listner
   useEffect(() => {
     // subsscribebattle room
-    let documentRef = db.collection('battleRoom').doc(roomiddata)
-    documentRef.onSnapshot(
+    if (!roomiddata) return;
+    let documentRef = doc(db, 'battleRoom', roomiddata)
+    onSnapshot(documentRef,
       { includeMetadataChanges: true },
       doc => {
-        if (doc.exists) {
+        if (doc.exists && doc.data()) {
           let battleroom = doc.data()
 
           // state set doc id
@@ -522,6 +547,8 @@ const PlaywithFriendBattle = () => {
           let user2 = battleroom.user2
 
           let category_id = battleroom.categoryId
+
+          setFireCatId(category_id)
 
           let user1uid = battleroom.user1.uid
 
@@ -570,9 +597,10 @@ const PlaywithFriendBattle = () => {
           if (owner.current.readyplay == false && owner.current.ownerID !== null) {
             if (useruid !== owner.current.ownerID) {
               MySwal.fire({
-                text: t('Room is deleted by owner')
+                text: t('room_delet_owner')
               }).then(result => {
                 if (result.isConfirmed) {
+                  setJoincode("")
                   navigate.push('/random-battle/play-with-friend-battle')
                   return false
                 }
@@ -597,13 +625,15 @@ const PlaywithFriendBattle = () => {
 
     try {
       setJoinUserPopup(false)
-      const documentRef = db.collection('battleRoom').doc(roomid)
-
-      await documentRef.update({
-        'user2.name': '',
-        'user2.uid': '',
-        'user2.profileUrl': ''
-      })
+      const documentRef = doc(db, 'battleRoom', roomid)
+      const battleroomSnapshot = await getDoc(documentRef)
+      if (battleroomSnapshot.exists && battleroomSnapshot.data()) {
+        await updateDoc(documentRef, {
+          'user2.name': '',
+          'user2.uid': '',
+          'user2.profileUrl': ''
+        });
+      }
 
       navigate.push('/random-battle/play-with-friend-battle')
       setIsButtonClicked(false)
@@ -614,16 +644,16 @@ const PlaywithFriendBattle = () => {
 
   const handleJoinButtonClick = () => {
     setIsButtonClicked(true)
-    joinRoom(username, userprofile, useruid, inputCode, usercoins)
+    joinRoom(username, userprofile, useruid, joinCode, usercoins)
   }
 
   // select category
   const handleSelectCategory = e => {
     const index = e.target.selectedIndex
     const el = e.target.childNodes[index]
-    let cat_id = el.getAttribute('id')
+    let cat_data = JSON.parse(el.getAttribute('data'))
     let cat_name = el.getAttribute('name')
-    setCategory({ ...category, selected: cat_id, category_name: cat_name })
+    setCategory({ ...category, category_data: cat_data, category_name: cat_name })
   }
 
   // share room code popUp handlers
@@ -678,25 +708,33 @@ const PlaywithFriendBattle = () => {
     dispatch(reviewAnswerShowSuccess(false))
   }, [])
 
-
+  useEffect(() => {
+    if (fireCatId !== undefined && category.all !== '') {
+      category.all.map((id) => {
+        if (id.id == fireCatId) {
+          setJoinImg(id.image)
+        }
+      })
+    }
+  }, [fireCatId])
 
 
   return (
     <>
-      <Breadcrumb title={t('1 vs 1 Battle')} content="" contentTwo="" />
+      <Breadcrumb title={t('1 v/s 1 Battle')} content="" contentTwo="" />
       <div className='SelfLearning battlequiz my-5'>
         <div className='container'>
           <div className="playFrndWrapper">
             <div className='row morphisam'>
               {/* battle screen */}
               <div className='col-md-12  col-xl-12 col-xxl-12 col-12'>
-                <h3 className='playFrndTitle'>{t("play-with-friend")}</h3>
+                <h3 className='playFrndTitle'>{t("play_with_friend")}</h3>
               </div>
               <div className='col-md-12  col-xl-12 col-xxl-12 col-12'>
                 <Tabs defaultActiveKey='1'>
-                  <TabPane tab={t('Create Room')} key='1'>
+                  <TabPane tab={t('create_room')} key='1'>
                     {(() => {
-                      if (systemconfig && systemconfig.battle_random_category_mode == '1') {
+                      if (systemconfig && systemconfig.battle_mode_one_category == '1') {
                         return (
                           <div className='bottom__cat__box playFrndSelecter'>
                             <div className="seleterWrapper">
@@ -707,21 +745,21 @@ const PlaywithFriendBattle = () => {
                                 onChange={e => handleSelectCategory(e)}
                               >
                                 {loading ? (
-                                  <option>{t('Loading...')}</option>
+                                  <option>{t('loading')}</option>
                                 ) : (
                                   <>
                                     {category.all ? (
                                       category.all.map((cat_data, key) => {
-                                        // console.log("",cat_data)
+
                                         const { category_name } = cat_data
                                         return (
-                                          <option key={key} value={cat_data.key} id={cat_data.id} no_of={cat_data.no_of} name={cat_data.category_name}>
+                                          <option key={key} value={cat_data.key} no_of={cat_data.no_of} name={cat_data.category_name} data={JSON.stringify(cat_data)}>
                                             {category_name}
                                           </option>
                                         )
                                       })
                                     ) : (
-                                      <option>{t('No Category Data Found')}</option>
+                                      <option>{t('no_cat_data_found')}</option>
                                     )}
                                   </>
                                 )}
@@ -733,7 +771,7 @@ const PlaywithFriendBattle = () => {
                     })()}
                     <div className='inner_content d-flex align-items-center flex-wrap'>
                       <span >
-                        {t("Entry Fee")}:
+                        {t("entry_fees")}:
                       </span>
                       <ul className='coins_deduct d-flex ps-0 align-items-center my-3'>
                         {coinsdata.map((data, idx) => {
@@ -766,32 +804,39 @@ const PlaywithFriendBattle = () => {
                     {/* coins */}
                     <div className='total_coins my-4 ml-0'>
                       <h5 className=' text-center '>
-                        {t('Current Coins')} : {usercoins < 0 ? 0 : usercoins}
+                        {t('current_coins')} : {usercoins < 0 ? 0 : usercoins}
                       </h5>
                     </div>
 
                     {/* create room */}
                     <div className='create_room'>
-                      <button className='btn btn-primary' onClick={() => searchRoom()}>
-                        {t('Create Room')}
-                      </button>
+                      {
+                        isloading ?
+                          <button className='btn btn-primary loader_div'>
+                            <div class="room_loader"></div>
+                          </button> :
+                          <button className='btn btn-primary' onClick={() => searchRoom()}>
+                            {t('create_room')}
+                          </button>
+                      }
                     </div>
                   </TabPane>
-                  <TabPane tab={t('Join Room')} key='2'>
+                  <TabPane tab={t('join_room')} key='2'>
                     <div className='join_room_code'>
-                      <input
-                        type='text'
-                        placeholder={t('Enter Code')}
-                        onChange={handlechange}
-                        className='join_input'
-                        min='0'
-                        ref={inputRef}
+                      <OTPInput
+                        value={joinCode}
+                        onChange={setJoincode}
+                        numInputs={6}
+                        containerStyle={"otpbox"}
+                        renderSeparator={<span className='space'></span>}
+                        renderInput={(props) => <input {...props} className="custom-input-class"></input>}
                       />
+
                     </div>
                     <div className='join_btn mt-4'>
-                      <button className='btn btn-primary' onClick={handleJoinButtonClick} disabled={isButtonClicked}>
+                      <button className=' btn btn-primary' onClick={handleJoinButtonClick} disabled={isButtonClicked}>
                         {' '}
-                        {t('Join Room')}
+                        {t('join_room')}
                       </button>
                     </div>
                   </TabPane>
@@ -806,7 +851,7 @@ const PlaywithFriendBattle = () => {
       <Modal
         maskClosable={false}
         centered
-        visible={playwithfriends}
+        open={playwithfriends}
         onOk={() => setPlaywithfriends(false)}
         onCancel={() => {
           setPlaywithfriends(false)
@@ -820,15 +865,28 @@ const PlaywithFriendBattle = () => {
             <div className='randomplayer'>
               <div className='main_screen'>
                 <h3 className='text-center headlineText'>
-                  {t('play-with-friend')}
+                  {t('play_with_friend')}
                 </h3>
+                <div class="join_battel_sub_header">{t('ready_for_quiz')}</div>
                 <div className='room_code_screen'>
-                  <h3>{shouldGenerateRoomCode}</h3>
+                  <h6 className='fw-bold mt-1 mb-3'>{t('game_start_soon')} </h6>
+                  <h3 className='mt-2 mb-3'>{shouldGenerateRoomCode}</h3>
+                  <div className='entry_fees_coins_battle'>{t('entry_fees')} &nbsp; :-&nbsp;<p className='coins_selected'>{` ${selectedCoins.selected} Coins`}</p> </div>
+                  <div className='battle_line_break'></div>
+                  <div className='battle_cat_image_main_div'>
+                    <div className='battle_cat_image'>
+                      {category.category_data.image !== '' ? <Image src={category.category_data.image} width={50} height={50} className='rounded'></Image>
+                        :
+                        <Image src={cat_placeholder_img} width={50} height={50} className='rounded'></Image>}
+                    </div>
+                    <div className='battle_code_bottom_cat'>{category.category_name}</div>
+                  </div>
+
                   {process.env.NEXT_PUBLIC_SEO === "true" ? <>
                     <span className='shareIcon' onClick={showModal}>
                       <IoShareSocialOutline />
                     </span>
-                    <p>{t('share-room-code-friends')}</p>
+                    <p>{t('share_rc_frd')}</p>
                   </> : null}
                 </div>
                 <>
@@ -845,11 +903,11 @@ const PlaywithFriendBattle = () => {
                   }
                 </>
 
-                <div className='inner_Screen'>
+                <div className='inner_Screen onevsone_colum_adj'>
                   <div className='user_profile'>
                     <img src={userData?.data?.profile} alt='wrteam' onError={imgError} />
-                    <p className='mt-3 userName'>{userData?.data?.name || userData?.data?.email || userData?.data?.mobile}</p>
-                    <span className='createJoinSpan'>{t("Creator")}</span>
+                    <h5 className='my-3 fw-bold'>{truncate(userData?.data?.name || userData?.data?.email || userData?.data?.mobile, 10)}</h5>
+                    <span className='createJoinSpan'>{t("creator")}</span>
                   </div>
                   {battleUserData?.map((data, index) => {
                     return (
@@ -859,8 +917,9 @@ const PlaywithFriendBattle = () => {
                         </div>
                         <div className='opponent_image' key={index}>
                           <img src={data.profileUrl} alt='wrteam' onError={imgError} />
-                          <p className='mt-3 userName'>{data.name ? data.name : t('Waiting')}</p>
-                          <span className='createJoinSpan'>{t("Joiner")}</span>
+                          <h5 className='my-3 fw-bold'>{truncate(data.name ? data.name : t("waiting"), 10)}</h5>
+                          <span className='createJoinSpan'>{t("joiner")}</span>
+
                         </div>
                       </>
                     )
@@ -873,7 +932,7 @@ const PlaywithFriendBattle = () => {
                         {showStart ? (
                           <div className='start_game'>
                             <button className='btn btn-primary' onClick={e => startGame(e)}>
-                              {t('Start Game')}
+                              {t('start_game')}
                             </button>
                           </div>
                         ) : null}
@@ -895,7 +954,7 @@ const PlaywithFriendBattle = () => {
             centered
             maskClosable={false}
             keyboard={false}
-            visible={joinuserpopup}
+            open={joinuserpopup}
             onOk={() => setJoinUserPopup(false)}
             onCancel={() => {
               setJoinUserPopup(false)
@@ -907,10 +966,40 @@ const PlaywithFriendBattle = () => {
             <>
               <div className='randomplayer'>
                 <div className='main_screen'>
-                  <div className='inner_Screen'>
+
+                  {/* <div className='showCategoryNameOnJoinRoomS'>Category: {showCategoryNameOnJoinRoomS}</div>
+                  <div className='battel-join-top'>
+                  {t("Entry Fee")}: 
+                  <div  className='list-unstyled battle-coins'>
+                  <img src={coinimg.src} alt='coin' /> 
+
+                  <span className='textcolorehite'>
+                  {EntryFeeCoin}
+                  </span>
+                  </div>
+                </div> */}
+                  <h3 class="text-center headlineText">{t('Play with a Friend')}</h3>
+                  <div className='join_battel_sub_header'>{t('ready_for_quiz')}</div>
+                  <div className='room_code_screen'>
+                    <h6 className='fw-bold mt-1 mb-3'>{t('game_start_soon')}</h6>
+                    <h3 className='mt-2 mb-3'>{roomCodeForJoiner}</h3>
+                    <div className='entry_fees_coins_battle'>{t("entry_fees")}&nbsp;:-&nbsp;<p className='coins_selected'>{` ${EntryFeeCoin} Coins`}</p> </div>
+                    <div className='battle_line_break'></div>
+                    <div className='battle_cat_image_main_div'>
+                      <div className='battle_cat_image'>
+                        {joinImage !== '' ? <Image src={joinImage} width={50} height={50} className='rounded'></Image>
+                          :
+                          <Image src={cat_placeholder_img} width={50} height={50} className='rounded'></Image>}
+                      </div>
+                      <div className='battle_code_bottom_cat'>{showCategoryNameOnJoinRoomS}</div>
+                    </div>
+                  </div>
+                  <div className='inner_Screen onevsone_colum_adj'>
                     <div className='user_profile'>
                       <img src={userData?.data?.profile} alt='wrteam' onError={imgError} />
-                      <p className='mt-3'>{userData?.data?.name || userData?.data?.email || userData?.data?.mobile}</p>
+                      <h5 className='my-3 fw-bold'> {truncate(userData?.data?.name || userData?.data?.email || userData?.data?.mobile, 12)}</h5>
+                      <span className='createJoinSpan'>{t("creator")}</span>
+
                     </div>
                     {battleUserData?.map((data, index) => {
                       return (
@@ -920,7 +1009,9 @@ const PlaywithFriendBattle = () => {
                           </div>
                           <div className='opponent_image' key={index}>
                             <img src={data.profileUrl} alt='wrteam' onError={imgError} />
-                            <p className='mt-3'>{data.name ? data.name : t('Waiting')}</p>
+                            <h5 className='my-3 fw-bold'>{truncate(data.name ? data.name : t('waiting'), 12)}</h5>
+                            <span className='createJoinSpan'>{t("joiner")}</span>
+
                           </div>
                         </>
                       )

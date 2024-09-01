@@ -1,20 +1,21 @@
 import { withTranslation } from "react-i18next";
 import c1 from "src/assets/images/c1.svg"
 import excla from 'src/assets/images/exclamation.svg'
+import { imgError } from "src/utils";
 const FunandLearnSubIntro = ({ data, t }) => {
   const imageToShow = data.has_unlocked === "0" && data.is_premium === "1";
 
-  return (
+  return (<>
     <div className="subcatintro__sec">
       <div className={`card spandiv `}>
         <div className="cardInnerData">
           <span className='Box__icon'>
-            <img src={data.image ? data.image : `${excla.src}`} alt='image' />
+            <img src={data.image ? data.image : `${excla.src}`} alt='image' onError={imgError} />
           </span>
           <div className="cardDetails">
             <p className='cardText '>{data.subcategory_name}</p>
             <div className="cardSubDetails">
-              <p className='CardQues'> {t("Questions")} : {data.no_of_que}</p>
+              <p className='CardQues'> {t("questions")} : {data.no_of_que}</p>
               {imageToShow ? (
                 <img
                   src={c1.src}
@@ -30,7 +31,7 @@ const FunandLearnSubIntro = ({ data, t }) => {
         </div>
       </div>
     </div>
-  );
+  </>);
 };
 
 export default withTranslation()(FunandLearnSubIntro);

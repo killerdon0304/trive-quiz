@@ -9,9 +9,9 @@ import FirebaseData from "../../utils/Firebase";
 import { logout, updateUserDataInfo } from "src/store/reducers/userSlice";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
-import { getusercoinsApi } from "src/store/actions/campaign";
 import { selectCurrentLanguage } from "src/store/reducers/languageSlice";
 import { loadUserCoinApi } from "src/store/reducers/userCoinsSlice";
+import { signOut } from "firebase/auth";
 const Sidebar = dynamic(() => import('../NavBar/Sidebar'), { ssr: false })
 const NavBar = dynamic(() => import('../NavBar/NavBar'), { ssr: false })
 const Logo = dynamic(() => import('../Logo/Logo'), { ssr: false })
@@ -61,11 +61,12 @@ const Header = () => {
 
     const handleLogout = async () => {
         logout()
-        await auth.signOut()
+        await signOut(auth)
         await router.push('/auth/login')
     }
 
     useEffect(() => {
+
         if (userData && userData?.isLogin === true) {
             loadUserCoinApi({
                 onSuccess: (responseData) => {
@@ -73,44 +74,62 @@ const Header = () => {
                 },
                 onError: (error) => {
                     console.log(error)
+
+                    // if same user login in other brower then its logout
+                    if (error == TOKEN_EXPIRED) {
+                        MySwal.fire({
+                            text: ("Your session has expired. Please log in again."),
+                            icon: "warning",
+                            showCancelButton: false,
+                            customClass: {
+                                confirmButton: 'Swal-confirm-buttons',
+                                cancelButton: "Swal-cancel-buttons"
+                            },
+                            allowOutsideClick: false,
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                handleLogout();
+                            }
+                        });
+                    }
                 }
             })
         }
-    }, [userData])
-    
+    }, [])
 
-    if (userData && userData?.isLogin === true) {
-        // if same user login in other brower then its logout
-        axios.interceptors.response.use(function (response) {
-            // Check if response.data.message is defined
-            if (response.data && response.data.message) {
-                if (response.data.message === TOKEN_EXPIRED) {
-                    MySwal.fire({
-                        text: ("Your session has expired. Please log in again."),
-                        icon: "warning",
-                        showCancelButton: false,
-                        customClass: {
-                            confirmButton: 'Swal-confirm-buttons',
-                            cancelButton: "Swal-cancel-buttons"
-                        },
-                        allowOutsideClick: false,
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            handleLogout();
-                        }
-                    });
-                    return Promise.reject(new Error("Session expired"));
-                }
-            }
-            // Handle other cases here if needed
 
-            // Return the response for further processing
-            return response;
-        }, function (error) {
-            // Handle request errors here if needed
-            return Promise.reject(error);
-        });
-    }
+    // if (userData && userData?.isLogin === true) {
+    //     // if same user login in other brower then its logout
+    //     axios.interceptors.response.use(function (response) {
+    //         // Check if response.data.message is defined
+    //         if (response.data && response.data.message) {
+    //             if (response.data.message === TOKEN_EXPIRED) {
+    //                 MySwal.fire({
+    //                     text: ("Your session has expired. Please log in again."),
+    //                     icon: "warning",
+    //                     showCancelButton: false,
+    //                     customClass: {
+    //                         confirmButton: 'Swal-confirm-buttons',
+    //                         cancelButton: "Swal-cancel-buttons"
+    //                     },
+    //                     allowOutsideClick: false,
+    //                 }).then((result) => {
+    //                     if (result.isConfirmed) {
+    //                         handleLogout();
+    //                     }
+    //                 });
+    //                 return Promise.reject(new Error("Session expired"));
+    //             }
+    //         }
+    //         // Handle other cases here if needed
+
+    //         // Return the response for further processing
+    //         return response;
+    //     }, function (error) {
+    //         // Handle request errors here if needed
+    //         return Promise.reject(error);
+    //     });
+    // }
 
     useEffect(() => {
     }, [selectcurrentLanguage])

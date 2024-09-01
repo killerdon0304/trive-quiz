@@ -53,10 +53,10 @@ const MathmaniaPlay = () => {
 
 
   const getNewQuestions = (type, type_id) => {
-    getmathQuestionsApi(
-      type,
-      type_id,
-      (response) => {
+    getmathQuestionsApi({
+      type: type,
+      type_id: type_id,
+      onSuccess: (response) => {
         let bookmark = getBookmarkData();
         let questions_ids = Object.keys(bookmark).map((index) => {
           return bookmark[index].question_id;
@@ -90,12 +90,12 @@ const MathmaniaPlay = () => {
         });
         setQuestions(questions);
       },
-      (error) => {
-        toast.error(t("No Questions Found"));
-        // navigate.push("/all-games");
+      onError: (error) => {
+        toast.error(t("no_que_found"));
+        // navigate.push("/quiz-play");
         console.log(error);
       }
-    );
+    });
   };
 
   const handleAnswerOptionClick = (questions) => {
@@ -106,12 +106,12 @@ const MathmaniaPlay = () => {
 
   return (
     <Layout>
-      <Breadcrumb title={t('MathmaniaPlay')} content="" contentTwo="" />
+      <Breadcrumb title={t('mathmania_play')} content="" contentTwo="" />
       <div className='funandlearnplay MathmaniaPlay dashboard'>
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 {(() => {
                   if (questions && questions?.length >= 0) {
                     return (
@@ -124,7 +124,7 @@ const MathmaniaPlay = () => {
                   } else {
                     return (
                       <div className='text-center text-white'>
-                        <p>{'No Questions Found'}</p>
+                        <p>{t('no_que_found')}</p>
                       </div>
                     )
                   }

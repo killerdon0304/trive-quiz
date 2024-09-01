@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import PropTypes from "prop-types";
 import { withTranslation } from "react-i18next";
-import { decryptAnswer, imgError } from "src/utils";
+import { decryptAnswer, imgError, reportQuestion } from "src/utils";
 import { useSelector } from "react-redux";
 import { sysConfigdata } from "src/store/reducers/settingsSlice";
 import { ReportQuestionApi, reportQuestionApi } from "src/store/actions/campaign";
@@ -21,31 +21,7 @@ function RandomReviewAnswer({ questions, goBack, t, reportquestions }) {
     // store data get
     const userData = useSelector((state) => state.User);
 
-    const reportQuestion = (question_id) => {
-        MySwal.fire({
-            showCancelButton: true,
-            customClass: {
-                confirmButton: 'Swal-confirm-buttons',
-                cancelButton: "Swal-cancel-buttons"
-            },
-            confirmButtonText: t("Continue"),
-            input: "textarea",
-            inputLabel: t("Reason"),
-            inputPlaceholder: t("Enter your Reason"),
-            inputAttributes: {
-                "aria-label": t("Enter your Reason"),
-            },
-        }).then((result) => {
-            if (result.isConfirmed) {
-                ReportQuestionApi(question_id, result.value, (response) => {
-                    Swal.fire(t("Success"), t("Question Reported successfully"), "success");
-                }, (error) => {
-                    Swal.fire(t("OOps"), t("Please Try again"), "error");
-                    console.log(error)
-                })
-            }
-        });
-    };
+
 
     const previousQuestion = () => {
         const prevQuestion = currentQuestion - 1;
@@ -85,7 +61,7 @@ function RandomReviewAnswer({ questions, goBack, t, reportquestions }) {
     return (
         <React.Fragment>
             <div className="text-center">
-                <h4 className="">{t("Review Answers")}</h4>
+                <h4 className="">{t("review_answers")}</h4>
             </div>
             <div className="inner__headerdash">
                 <div className="total__out__leveldata coinsdata">
@@ -154,7 +130,7 @@ function RandomReviewAnswer({ questions, goBack, t, reportquestions }) {
                         ) : (
                             ""
                         )}
-                        {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
+                        {questions[currentQuestion].optione !== "" ? (
                             <div className="row d-flex justify-content-center">
                                 <div className="col-md-6 col-12">
                                     <div className="inner__questions">
@@ -176,7 +152,7 @@ function RandomReviewAnswer({ questions, goBack, t, reportquestions }) {
                 )}
                 {!questions[currentQuestion].selected_answer ? (
                     <div className="text-end">
-                        <span className="">*{t("Not Attempted")}</span>
+                        <span className="">*{t("not_att")}</span>
                     </div>
                 ) : (
                     ""
@@ -191,7 +167,7 @@ function RandomReviewAnswer({ questions, goBack, t, reportquestions }) {
                 </div>
                 <div className="resettimer">
                     <button className="btn btn-primary" onClick={goBack}>
-                        {t("Back")}
+                        {t("back")}
                     </button>
                 </div>
                 <div className="skip__questions">
@@ -201,7 +177,7 @@ function RandomReviewAnswer({ questions, goBack, t, reportquestions }) {
                 </div>
             </div>
             <div className="text-center review-answer-data">
-                <small className="review-latext-note">{questions[currentQuestion].note ? <>{t("Note")} : <p dangerouslySetInnerHTML={{ __html: purify.sanitize(questions[currentQuestion].note) }}></p></> : ""}</small>
+                <small className="review-latext-note">{questions[currentQuestion].note ? <>{t("note")} : <p dangerouslySetInnerHTML={{ __html: purify.sanitize(questions[currentQuestion].note) }}></p></> : ""}</small>
             </div>
         </React.Fragment>
     );

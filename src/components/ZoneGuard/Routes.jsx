@@ -35,7 +35,7 @@ const Routes = ({ children }) => {
         if (requiresAuth) {
             if (isAuthenticated === null) {
                 navigate.push('/auth/login')
-                toast.error('please login first')
+                toast.error('Please login first')
                 return
             }
         }

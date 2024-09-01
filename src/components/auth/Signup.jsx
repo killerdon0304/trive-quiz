@@ -17,6 +17,11 @@ import { BsEyeSlash, BsEye } from 'react-icons/bs'
 import NewUser from 'src/components/Common/NewUser'
 import dynamic from 'next/dynamic'
 import { t } from 'i18next'
+import { GoogleAuthProvider, createUserWithEmailAndPassword, getAdditionalUserInfo, sendEmailVerification, signInWithPopup } from 'firebase/auth'
+import { handleFirebaseAuthError } from 'src/utils'
+import { sysConfigdata } from 'src/store/reducers/settingsSlice'
+import { useSelector } from 'react-redux'
+import { HiOutlineMail } from "react-icons/hi";
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const SignUp = () => {
@@ -35,7 +40,13 @@ const SignUp = () => {
 
   const [type, setType] = useState("password");
 
+  const [type2, setType2] = useState("password");
+
   const [Icon, setIcon] = useState(<BsEyeSlash />);
+
+  const [Icon2, setIcon2] = useState(<BsEyeSlash />);
+
+  const [confPassword, setConfPassword] = useState('');
 
   const emailRef = useRef()
 
@@ -43,16 +54,17 @@ const SignUp = () => {
 
   const router = useRouter()
 
-  const { auth, googleProvider } = FirebaseData()
+  const { auth } = FirebaseData()
 
+  const systemconfig = useSelector(sysConfigdata)
   //signup
   const signup = async (email, password) => {
     let promise = await new Promise(function (resolve, reject) {
-      auth
-        .createUserWithEmailAndPassword(email, password)
+      createUserWithEmailAndPassword(auth, email, password)
         .then(userCredential => {
-          userCredential.user.sendEmailVerification()
-          toast.success(t('Email sent! Please check Email'))
+          let resposne = userCredential.user
+          sendEmailVerification(resposne)
+          toast.success(t('email_sent'))
           resolve(userCredential)
           auth.signOut()
         })
@@ -64,32 +76,36 @@ const SignUp = () => {
   //email signin
   const handleSignup = e => {
     e.preventDefault()
-    setLoading(true)
     const email = emailRef.current.value
     const password = passwordRef.current.value
-    signup(email, password)
-      .then(response => {
-        setLoading(false)
-        router.push('/')
-      })
-      .catch(err => {
-        toast.error(err.message)
-        setLoading(false)
-      })
+    if (password === confPassword) {
+      setLoading(true)
+      signup(email, password)
+        .then(response => {
+          setLoading(false)
+          router.push('/')
+        })
+        .catch(err => {
+          toast.error(err.message)
+          setLoading(false)
+        })
+    } else {
+      toast.error(t('password_mismatch_warning'))
+    }
   }
 
   //google sign in
   const signInWithGoogle = async (e) => {
     e.preventDefault();
-
+    const provider = new GoogleAuthProvider();
     try {
-      const response = await auth.signInWithPopup(googleProvider);
+      const response = await signInWithPopup(auth, provider);
       const { user, additionalUserInfo } = response;
 
       setProfile(user);
       setProfile((values) => ({ ...values, auth_type: 'gmail' }));
-
-      if (additionalUserInfo.isNewUser) {
+      const { isNewUser } = getAdditionalUserInfo(response)
+      if (isNewUser) {
         // If new User, show the Update Profile Screen
         setNewUserScreen(true);
       } else {
@@ -109,11 +125,17 @@ const SignUp = () => {
           friends_code,
           () => {
             setLoading(false);
-            toast.success(t('Successfully Login'));
-            router.push('/all-games');
+            toast.success(t('successfully_login'));
+            router.push('/quiz-play');
           },
           () => {
-            toast.error(t('Please Try again'));
+            if (error === "126") {
+              toast.error(t("ac_deactive"));
+            } else {
+              toast.error(`${t('Please ')}${t('try_again')}`);
+              console.log("signUp signInWithGoogle", error);
+
+            }
           }
         );
       }
@@ -135,6 +157,16 @@ const SignUp = () => {
       setType("password");
     }
   };
+  // show confirm password
+  const handletoggle2 = () => {
+    if (type2 === "password") {
+      setIcon2(<BsEye />);
+      setType2("text");
+    } else {
+      setIcon2(<BsEyeSlash />);
+      setType2("password");
+    }
+  };
 
   return (
     <Layout>
@@ -144,16 +176,16 @@ const SignUp = () => {
             <div className='row morphisam'>
               <div className='col-12 border-line position-relative'>
                 <div className='inner__login__form outerline'>
-                  <h3 className='mb-4 text-capitalize '>{t('Sign Up')}</h3>
+                  <h3 className='mb-4 text-capitalize '>{t('sign_up')}</h3>
 
                   <div className='social__icons'>
                     <ul>
-                      <li>
+                      {systemconfig.gmail_login === '1' && <li>
                         <button className='social__icons_btn' onClick={signInWithGoogle}>
                           <FcGoogle /> {t("Login with Google")}
                         </button>
-                      </li>
-                      <li>
+                      </li>}
+                      {systemconfig.phone_login === '1' && <li>
                         <button
                           className='social__icons_btn'
                           onClick={() => {
@@ -162,31 +194,31 @@ const SignUp = () => {
                         >
                           <FaMobileAlt /> {t("Login with Phone")}
                         </button>
-                      </li>
+                      </li>}
                     </ul>
                   </div>
-                  <div className='continue'>
+                  {(systemconfig.phone_login === '1' || systemconfig.gmail_login === '1') && systemconfig.email_login === '1' && <div className='continue'>
                     <span className='line'></span>
                     <p>{t("Or continue with Email")}</p>
                     <span className='line'></span>
-                  </div>
-                  <Form onSubmit={e => handleSignup(e)}>
+                  </div>}
+                  {systemconfig.email_login === '1' && <Form onSubmit={e => handleSignup(e)}>
                     <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicEmail'>
                       <Form.Control
                         type='email'
-                        placeholder={t('Enter Your Email')}
+                        placeholder={t('enter_email')}
                         className='inputelem'
                         required={true}
                         ref={emailRef}
                       />
                       <span className='emailicon'>
-                        <FaEnvelope />
+                        <HiOutlineMail />
                       </span>
                     </Form.Group>
-                    <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicPassword'>
+                    <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicPassword '>
                       <Form.Control
                         type={type}
-                        placeholder={t('Enter Your Password')}
+                        placeholder={t('enter_password')}
                         className='inputelem'
                         required={true}
                         ref={passwordRef}
@@ -198,33 +230,47 @@ const SignUp = () => {
                         {Icon}
                       </span>
                     </Form.Group>
+                    <Form.Group className='mb-3 position-relative d-inline-block w-100' controlId='formBasicPassword' onChange={(e) => setConfPassword(e.target.value)} >
+                      <Form.Control
+                        type={type2}
+                        placeholder={t('confirm_password')}
+                        className='inputelem'
+                        required={true}
+                      />
+                      <span className='emailicon2'>
+                        <FaLock />
+                      </span>
+                      <span onClick={handletoggle2} className="password_icon">
+                        {Icon2}
+                      </span>
+                    </Form.Group>
                     <div className='sign__up'>
                       <small className='text-center'>
                         <input type="checkbox" className='checkbox' name="agree" id="agree" required />
-                        {t('user agreement message')}&nbsp;
+                        {t('user_agreement_msg')}&nbsp;
                         <u>
                           <Link className='conditions' href='/terms-conditions'>
-                            {t('Terms and Conditions')}
+                            {t('t&c')}
                           </Link>
                         </u>
                         &nbsp;&&nbsp;
                         <u>
                           <Link className='conditions' href='/privacy-policy'>
-                            {t('Privacy Policy')}
+                            {t('privacy_policy')}
                           </Link>
                         </u>
                       </small>
                     </div>
                     <Button variant='primary w-100 my-3' className='submit_login' type='submit' disabled={loading}>
-                      {loading ? t('Please Wait') : t('Create Account')}
+                      {loading ? t('please_wait') : `${t('create')} ${t('details')} `}
                     </Button>
 
-                  </Form>
+                  </Form>}
                   <p className='text-center'>
-                    {t('Already have an account')}
+                    {t('already_have_acc')}
                     <span>
                       <Link href={'/auth/login'} replace className='text-dark auth-signup'>
-                        &nbsp;{t('Login')}
+                        &nbsp;{t('login')}
                       </Link>
                     </span>
                   </p>

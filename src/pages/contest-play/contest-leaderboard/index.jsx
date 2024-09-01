@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic'
 import { LoadNewBadgesData, badgesData } from 'src/store/reducers/badgesSlice'
 import { updateUserDataInfo } from 'src/store/reducers/userSlice'
 import FormattedNumberData from 'src/components/FormatNumber/FormatedNumberData'
+import userImg from '../../../assets/images/user.svg'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 
 const ContestLeaderBoard = ({ t }) => {
@@ -38,7 +39,7 @@ const ContestLeaderBoard = ({ t }) => {
   const [getWidthData, setWidthData] = useState('')
   const columns = [
     {
-      name: t('Rank'),
+      name: t('rank'),
       selector: row => {
         const value = row.user_rank
         return typeof value === 'string' ? parseInt(value, 10) : value
@@ -54,13 +55,13 @@ const ContestLeaderBoard = ({ t }) => {
           </div>
         ) : (
           <div className='leaderboard-profile'>
-            <img src='/images/user.svg' className='w-25' alt={row.name}></img>
+            <img src={userImg.src} className='w-25' alt={row.name}></img>
           </div>
         ),
       sortable: false
     },
     {
-      name: t('Player'),
+      name: t('player'),
       selector: row => `${row.name}`,
       sortable: false
     },
@@ -71,17 +72,17 @@ const ContestLeaderBoard = ({ t }) => {
   ]
 
   useEffect(() => {
-    ContestLeaderboardApi(
-      getData.past_id,
-      response => {
+    ContestLeaderboardApi({
+      contest_id: getData.past_id,
+      onSuccess: response => {
         setTableData(response, response.total)
         setContestBadges(response.my_rank)
       },
-      error => {
-        toast.error('No Data Found')
+      onError: error => {
+        toast.error('no_data_found')
         console.log(error)
       }
-    )
+    })
   }, [])
 
   const mostWantedWinner = () => {
@@ -92,26 +93,24 @@ const ContestLeaderBoard = ({ t }) => {
           LoadNewBadgesData('most_wanted_winner', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            most_wanted_winner_coin,
-            null,
-            null,
-            t('most wanted badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: most_wanted_winner_coin,
+            title: t('most_wanted_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -139,9 +138,9 @@ const ContestLeaderBoard = ({ t }) => {
   useEffect(() => {
   }, [showleaderboard, leaderBoard, getWidthData]);
 
-  useEffect(()=>{
+  useEffect(() => {
     mostWantedWinner()
-  },[])
+  }, [])
 
 
   const shouldSliceData = getWidthData >= 768;
@@ -171,7 +170,7 @@ const ContestLeaderBoard = ({ t }) => {
   return (
     <Layout>
       <div ref={myElementRef}>
-        <Breadcrumb title={t('Contest LeaderBoard')} content="" contentTwo="" />
+        <Breadcrumb title={t('contest_leaderboard')} content="" contentTwo="" />
 
         <div className='LeaderBoard'>
           <div className='container'>
@@ -212,7 +211,7 @@ const ContestLeaderBoard = ({ t }) => {
                               <div className='col-lg-4 col-md-4 col-12 firstDataCard'>
                                 <li className='first_data' key={index}>
                                   <div className='Leaf_img'>
-                                  
+
                                     <img className='data_profile' src={data.profile} alt='first' onError={imgError} />
 
                                   </div>
@@ -261,7 +260,7 @@ const ContestLeaderBoard = ({ t }) => {
                   pagination={false}
                   highlightOnHover
                   paginationServer
-                  noDataComponent={t("There are no records to display")}
+                  noDataComponent={t("no_records")}
                   paginationTotalRows={leaderBoard && leaderBoard.total}
                   paginationComponentOptions={{
                     noRowsPerPage: true
@@ -272,10 +271,10 @@ const ContestLeaderBoard = ({ t }) => {
                 <table className='my_rank_bottom'>
                   <thead>
                     <tr>
-                      <th>{t('My Rank')} </th>
-                      <th>{t('Profile')}</th>
-                      <th>{t('Player')}</th>
-                      <th>{t('Score')}</th>
+                      <th>{t('my_rank')} </th>
+                      <th>{t('profile')}</th>
+                      <th>{t('player')}</th>
+                      <th>{t('score')}</th>
                     </tr>
                   </thead>
                   <tbody>

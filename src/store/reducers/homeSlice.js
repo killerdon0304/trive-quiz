@@ -24,7 +24,9 @@ export const slice = createSlice({
       home.lastFetch = Date.now()
       home.Lang = action.request
     },
-    homeRequestFailed: home => {
+    homeRequestFailed:  (home, action)=> {
+      console.log(action);
+      home.data = action.payload
       home.loading = true
     },
     homeUpdateLanguage: (home, action) => {

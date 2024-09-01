@@ -69,7 +69,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
   return (
     <React.Fragment>
       <div className="text-center">
-        <h4 className="reviewAns">{t("Review Answers")}</h4>
+        <h4 className="reviewAns">{t("review_answers")}</h4>
       </div>
 
       <div className="inner__headerdash">
@@ -101,7 +101,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
               <div className="correctAns">
                 <span>
                   <img src={checkIcon.src} alt="" />
-                  {t('correct-answer')} :
+                  {t('correct_answer')} :
                   <span>
                     {` ${decryptedAnswer}`}
                   </span>
@@ -116,7 +116,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
                   <div className="correctAns">
                     <span>
                       <img src={crossIcon.src} alt="" />
-                      {t("Your Answer")} :
+                      {t("your_ans")} :
                       <span>
                         {` ${questions[currentQuestion].selected_answer}`}
                       </span>
@@ -125,7 +125,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
                   <div className="correctAns">
                     <span>
                       <img src={checkIcon.src} alt="" />
-                      {t('correct-answer')} :
+                      {t('correct_answer')} :
                       <span>
                         {` ${decryptedAnswer}`}
                       </span>
@@ -197,9 +197,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
             ) : (
               ""
             )}
-            {systemconfig &&
-              systemconfig.option_e_mode &&
-              questions[currentQuestion].optione ? (
+            {questions[currentQuestion].optione !== "" ? (
               <div className="row d-flex justify-content-center">
                 <div className="col-md-6 col-12">
                   <div className="inner__questions">
@@ -233,7 +231,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
         )}
         {!questions[currentQuestion].selected_answer ? (
           <div className="text-end">
-            <span>*{t("Not Attempted")}</span>
+            <span>*{t("not_att")}</span>
           </div>
         ) : (
           ""
@@ -252,7 +250,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
         </div>
         <div className="resettimer">
           <button className="btn btn-primary" onClick={goBack}>
-            {t("Back")}
+            {t("back")}
           </button>
         </div>
         <div className="skip__questions">
@@ -267,7 +265,7 @@ function GuessthewordReviewAnswer({ questions, goBack, t }) {
       <div className="text-center text-white">
         <small>
           {questions[currentQuestion].note ? (
-            <p>{t("Note") + " : " + questions[currentQuestion].note}</p>
+            <p>{t("note") + " : " + questions[currentQuestion].note}</p>
           ) : (
             ""
           )}

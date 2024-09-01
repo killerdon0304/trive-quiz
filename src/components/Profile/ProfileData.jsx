@@ -23,7 +23,7 @@ import { useSelector } from 'react-redux'
 import { UserCoinScoreApi, getusercoinsApi, setBadgesApi } from 'src/store/actions/campaign'
 import { imgError } from 'src/utils'
 import { badgesData, LoadNewBadgesData } from 'src/store/reducers/badgesSlice'
-
+import { HiOutlineMail } from "react-icons/hi";
 import profileImages from 'src/assets/json/profileImages'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css/effect-fade'
@@ -31,7 +31,7 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
-
+import userImg from '../../assets/images/user.svg'
 // import required modules
 import { Navigation } from 'swiper/modules'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
@@ -74,7 +74,6 @@ const ProfileData = () => {
   const sliderRef = useRef(null);
 
   const handlePrev = useCallback(() => {
-    // console.log("test")
     if (!sliderRef.current) return;
 
     sliderRef.current.swiper.slidePrev();
@@ -86,22 +85,22 @@ const ProfileData = () => {
   }, []);
 
   // user profile data get and statics
-  useEffect(() => {
-    getUserProfilestatisticsApi(
-      // userData?.data?.id,
-      success => { },
-      error => {
-        // toast.error(error)
-      }
-    )
+  // useEffect(() => {
+  //   getUserProfilestatisticsApi(
+  //     // userData?.data?.id,
+  //     success => { },
+  //     error => {
+  //       // toast.error(error)
+  //     }
+  //   )
 
-    getUserStatisticsDataApi(
-      success => { },
-      error => {
-        // toast.error(error);
-      }
-    )
-  }, [])
+  //   getUserStatisticsDataApi(
+  //     success => { },
+  //     error => {
+  //       // toast.error(error);
+  //     }
+  //   )
+  // }, [])
 
   // dummy profile update
   const dummyProfileImage = e => {
@@ -113,7 +112,7 @@ const ProfileData = () => {
       const blob = await response.blob()
       const file = new File([blob], fileName, { contentType })
       if (demoValue) {
-        toast.error(t('Profile update is not allowed in demo version.'));
+        toast.error(t('no_update_in_demo'));
       } else {
         updateProfileApi(
           file,
@@ -151,7 +150,7 @@ const ProfileData = () => {
   // update profile data
   const updateProfileData = () => {
     if (demoValue) {
-      toast.error(t('Profile update is not allowed in demo version.'));
+      toast.error(t('no_update_in_demo'));
     } else {
       updateProfileDataApi(
         profile.email,
@@ -182,7 +181,7 @@ const ProfileData = () => {
   const handleImageChange = e => {
     e.preventDefault()
     if (demoValue) {
-      toast.error(t('Profile update is not allowed in demo version.'))
+      toast.error(t('no_update_in_demo'))
     } else {
       updateProfileApi(
         e.target.files[0],
@@ -209,26 +208,24 @@ const ProfileData = () => {
           LoadNewBadgesData('big_thing', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            big_thing_coin,
-            null,
-            null,
-            t('big thing badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: big_thing_coin,
+            title: t('big_thing_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -247,26 +244,24 @@ const ProfileData = () => {
           LoadNewBadgesData('elite', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            elite_coin,
-            null,
-            null,
-            t('elite badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: elite_coin,
+            title: t('elite_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -316,7 +311,7 @@ const ProfileData = () => {
   }, [showBookMark])
   return (
     <>
-      <Breadcrumb title={t('Profile')} content="" contentTwo="" />
+      <Breadcrumb title={t('profile')} content="" contentTwo="" />
 
       <div className='Profile__Sec'>
         <div className='container px-1'>
@@ -335,7 +330,7 @@ const ProfileData = () => {
                   <div className='row  main__profile d-flex justify-content-center align-items-center'>
                     <div className='prop__image justify-content-center'>
                       <img
-                        src={userData?.data && userData?.data?.profile ? userData?.data?.profile : '/images/user.svg'}
+                        src={userData?.data && userData?.data?.profile ? userData?.data?.profile : userImg.src}
                         alt='profile'
                         id='user_profile'
                         onError={imgError}
@@ -351,7 +346,7 @@ const ProfileData = () => {
                         <input
                           type='text'
                           className='form-control'
-                          placeholder={t('Upload File')}
+                          placeholder={t('upload_file')}
                           id='file1'
                           name='myfile'
                           disabled
@@ -366,7 +361,7 @@ const ProfileData = () => {
                       <div className='email__id justify-content-center'>
                         <span>
                           <i>
-                            <FaEnvelope />
+                          <HiOutlineMail />
                           </i>
                           <p>{userData?.data?.email}</p>
                         </span>
@@ -382,11 +377,11 @@ const ProfileData = () => {
                       </div>
                     )}
 
-                    <p className='orText'>{t('OR Select Avtar')}</p>
+                    <p className='orText'>{t('or_select_avtar')}</p>
                     {/* dummy image slider */}
                     <div className='dummy_image_slider'>
                       {/* <div className='d-flex select_profile justify-content-center'>
-                          <h6 className='pt-2'>{t('Select Profile Photo')}</h6>
+                          <h6 className='pt-2'>{t('select_profile_photo')}</h6>
                         </div> */}
                       <Swiper ref={sliderRef} modules={[Navigation]} {...swiperOption}>
                         {profileImages &&
@@ -425,7 +420,7 @@ const ProfileData = () => {
                               type='text'
                               name='name'
                               id='fullName'
-                              placeholder={t('Enter Your Name')}
+                              placeholder={t('enter_name')}
                               defaultValue={userData?.data && userData?.data?.name}
                               onChange={handleChange}
                               required
@@ -443,7 +438,7 @@ const ProfileData = () => {
                                 name='mobile'
                                 id='mobilenumber'
                                 className='mobile'
-                                placeholder={t('Enter Your Mobile Number')}
+                                placeholder={t('enter_num')}
                                 defaultValue={userMobile}
                                 onChange={handleChange}
                                 min='0'
@@ -457,11 +452,11 @@ const ProfileData = () => {
                           ) : (
                             <label htmlFor='email'>
                               <input
-                                type='text'
+                                type='email'
                                 name='email'
                                 id='email'
                                 className='mobile'
-                                placeholder={t('Enter Your Email')}
+                                placeholder={t('enter_email')}
                                 defaultValue={userData?.data && userData?.data?.email}
                                 onChange={handleChange}
                                 min='0'
@@ -469,7 +464,7 @@ const ProfileData = () => {
                               />
 
                               <i className='custom-icon'>
-                                <FaEnvelope />
+                              <HiOutlineMail />
                               </i>
                             </label>
                           )}
@@ -482,7 +477,7 @@ const ProfileData = () => {
                         name='submit'
                         id='mc-embedded-subscribe'
                       >
-                        {t('Update')}
+                        {t('update')}
                       </button>
                     </div>
 

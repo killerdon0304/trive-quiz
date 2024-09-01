@@ -32,8 +32,8 @@ const ContestPlay = () => {
   const userData = useSelector((state) => state.User);
 
   const AllData = () => {
-    ContestPlayApi(
-      response => {
+    ContestPlayApi({
+      onSuccess: response => {
         let liveData = response.live_contest.data
         setLiveContest(liveData)
 
@@ -43,34 +43,32 @@ const ContestPlay = () => {
         let upcomingData = response.upcoming_contest.data
         setUpComing(upcomingData)
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   //live play btn
   const playBtn = (contestid, entrycoin) => {
     if (Number(entrycoin) > Number(userData?.data?.coins)) {
-      toast.error("you dont have enough coins")
+      toast.error("no_enough_coins")
       return false;
     }
     navigate.push({ pathname: '/contest-play/contest-play-board' })
     let data = { contest_id: contestid, entry_coin: entrycoin }
     Loadtempdata(data)
-    UserCoinScoreApi(
-      '-' + entrycoin,
-      null,
-      null,
-      'Contest Entry Point',
-      '1',
-      response => {
+    UserCoinScoreApi({
+      coins: '-' + entrycoin,
+      title: t('contest_entry_point'),
+      status: '1',
+      onSuccess: response => {
         updateUserDataInfo(response.data)
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }
 
   //past leaderboard btn
@@ -87,20 +85,20 @@ const ContestPlay = () => {
 
   return (
     <Layout>
-      <Breadcrumb showBreadcrumb={true} title={t('Contest Play')} content={t('Home')} allgames={t('all-games')} contentTwo="" />
+      <Breadcrumb showBreadcrumb={true} title={t('Contest Play')} content={t('home')} allgames={`${t('quiz')} ${t('play')}`} contentTwo="" />
       <div className='contestPlay mb-5'>
         <div className='container'>
           <div className='row morphisam mb-5'>
             <div className='col-md-12 col-12'>
               <div className='contest_tab_contest'>
                 <Tabs defaultActiveKey='live' id='fill-tab-example' fill>
-                  <Tab eventKey='past' title={t('Finished')}>
+                  <Tab eventKey='past' title={t('finished')}>
                     <Past data={pastcontest} LeaderBoard={LeaderBoard} />
                   </Tab>
-                  <Tab eventKey='live' title={t('Ongoing')}>
+                  <Tab eventKey='live' title={t('ongoing')}>
                     <Live data={livecontest} playBtn={playBtn} />
                   </Tab>
-                  <Tab eventKey='upcoming' title={t('Upcoming')}>
+                  <Tab eventKey='upcoming' title={t('upcoming')}>
                     <Upcoming data={upcoming} />
                   </Tab>
                 </Tabs>

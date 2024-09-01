@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import PropTypes from "prop-types";
 import { withTranslation } from "react-i18next";
-import { RenderHtmlContent, decryptAnswer, imgError } from "src/utils";
+import { RenderHtmlContent, decryptAnswer, imgError, reportQuestion } from "src/utils";
 import { useSelector } from "react-redux";
 import { sysConfigdata } from "src/store/reducers/settingsSlice";
 import { ReportQuestionApi } from "src/store/actions/campaign";
@@ -19,31 +19,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
 
     const systemconfig = useSelector(sysConfigdata);
 
-    const reportQuestion = (question_id) => {
-        MySwal.fire({
-            showCancelButton: true,
-            customClass: {
-                confirmButton: 'Swal-confirm-buttons',
-                cancelButton: "Swal-cancel-buttons"
-            },
-            confirmButtonText: t("Continue"),
-            input: "textarea",
-            inputLabel: t("Reason"),
-            inputPlaceholder: t("Enter your Reason"),
-            inputAttributes: {
-                "aria-label": t("Enter your Reason"),
-            },
-        }).then((result) => {
-            if (result.isConfirmed) {
-                ReportQuestionApi(question_id, result.value, (response) => {
-                    Swal.fire(t("Success"), t("Question Reported successfully"), "success");
-                }, (error) => {
-                    Swal.fire(t("OOps"), t("Please Try again"), "error");
-                    console.log(error)
-                })
-            }
-        });
-    };
+
 
     const previousQuestion = () => {
         const prevQuestion = currentQuestion - 1;
@@ -83,7 +59,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
     return (
         <React.Fragment>
             <div className="text-center">
-                <h4 className="">{t("Review Answers")}</h4>
+                <h4 className="">{t("review_answers")}</h4>
             </div>
             <div className="inner__headerdash">
                 <div className="total__out__leveldata coinsdata">
@@ -102,7 +78,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                 )}
             </div>
             <div className="content__text">
-                <p className="question-text"><RenderHtmlContent htmlContent={questions[currentQuestion]?.question} /></p>
+                <p className="question-text">{<RenderHtmlContent htmlContent={questions[currentQuestion]?.question} />}</p>
             </div>
 
             {questions[currentQuestion].image ? (
@@ -117,7 +93,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                 {questions[currentQuestion].optiona ? (
                     <div className="col-md-6 col-12">
                         <div className="inner__questions">
-                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("a")}`}><RenderHtmlContent htmlContent={questions[currentQuestion]?.optiona} /></button>
+                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("a")}`}>{<RenderHtmlContent htmlContent={questions[currentQuestion]?.optiona} />}</button>
                         </div>
                     </div>
                 ) : (
@@ -126,7 +102,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                 {questions[currentQuestion].optionb ? (
                     <div className="col-md-6 col-12">
                         <div className="inner__questions">
-                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("b")}`}><RenderHtmlContent htmlContent={questions[currentQuestion]?.optionb} /></button>
+                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("b")}`}>{<RenderHtmlContent htmlContent={questions[currentQuestion]?.optionb} />}</button>
                         </div>
                     </div>
                 ) : (
@@ -137,7 +113,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                         {questions[currentQuestion].optionc ? (
                             <div className="col-md-6 col-12">
                                 <div className="inner__questions">
-                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("c")}`}><RenderHtmlContent htmlContent={questions[currentQuestion]?.optionc} /></button>
+                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("c")}`}>{<RenderHtmlContent htmlContent={questions[currentQuestion]?.optionc} />}</button>
                                 </div>
                             </div>
                         ) : (
@@ -146,19 +122,19 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                         {questions[currentQuestion].optiond ? (
                             <div className="col-md-6 col-12">
                                 <div className="inner__questions">
-                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("d")}`}><RenderHtmlContent htmlContent={questions[currentQuestion]?.optiond} /></button>
+                                    <button className={`btn button__ui w-100 ${setAnswerStatusClass("d")}`}>{<RenderHtmlContent htmlContent={questions[currentQuestion]?.optiond} />}</button>
                                 </div>
                             </div>
                         ) : (
                             ""
                         )}
-                        {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
+                        {questions[currentQuestion].optione !== "" ? (
                             <div className="row d-flex justify-content-center">
                                 <div className="col-md-6 col-12">
                                     <div className="inner__questions">
                                         <button className={`btn button__ui w-100 ${setAnswerStatusClass("e")}`}>
                                             <div className="row">
-                                                <div className="col"><RenderHtmlContent htmlContent={questions[currentQuestion]?.optione} /></div>
+                                                <div className="col">{<RenderHtmlContent htmlContent={questions[currentQuestion]?.optione} />}</div>
                                                 {questions[currentQuestion].probability_e ? <div className="col text-end">{questions[currentQuestion].probability_e}</div> : ""}
                                             </div>
                                         </button>
@@ -174,7 +150,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                 )}
                 {!questions[currentQuestion].selected_answer ? (
                     <div className="text-end">
-                        <span className="">*{t("Not Attempted")}</span>
+                        <span className="">*{t("not_att")}</span>
                     </div>
                 ) : (
                     ""
@@ -193,7 +169,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                 </div>
                 <div className="resettimer">
                     <button className="btn btn-primary" onClick={goBack}>
-                        {t("Back")}
+                        {t("back")}
                     </button>
                 </div>
                 <div className="skip__questions">
@@ -203,7 +179,7 @@ function Mathmaniareviewanswer({ questions, goBack, t, reportquestions }) {
                 </div>
             </div>
             <div className="text-center ">
-                <small className="review-latext-note">{questions[currentQuestion]?.note ? <>{t("Note")} :- <p><RenderHtmlContent htmlContent={questions[currentQuestion]?.note} /></p></> : ""}</small>
+                <small className="review-latext-note">{questions[currentQuestion]?.note ? <>{t("note")} :- <p><RenderHtmlContent htmlContent={questions[currentQuestion]?.note} /></p></> : ""}</small>
             </div>
         </React.Fragment>
     );

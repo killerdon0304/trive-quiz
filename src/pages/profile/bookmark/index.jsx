@@ -6,23 +6,25 @@ import { withTranslation } from 'react-i18next'
 import Skeleton from 'react-loading-skeleton'
 import { RenderHtmlContent, decryptAnswer, deleteBookmarkData } from 'src/utils'
 import { getbookmarkApi, setbookmarkApi } from 'src/store/actions/campaign'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { sysConfigdata } from 'src/store/reducers/settingsSlice'
 import Layout from 'src/components/Layout/Layout'
 import LeftTabProfile from 'src/components/Profile/LeftTabProfile'
+import { bookmarkId } from 'src/store/reducers/bookmarkSlice'
 
 const Bookmark = ({ t }) => {
   const [loading, setLoading] = useState(true);
   const [key, setKey] = useState("Quizzone");
-  const [quizzoneQue, setQuizzoneQue] = useState([{ correctAnswer: "" }]);
-  const [guessthewordQue, setGuesstheWordQue] = useState([{ correctAnswer: "" }]);
-  const [audioquizQue, setAudioQuizQue] = useState([{ correctAnswer: "" }]);
-  const [mathQue, setMathQuizQue] = useState([{ correctAnswer: "" }]);
+  const [quizzoneQue, setQuizzoneQue] = useState([]);
+  const [guessthewordQue, setGuesstheWordQue] = useState([]);
+  const [audioquizQue, setAudioQuizQue] = useState([]);
   const [visible, setVisible] = useState(5);
 
   const navigate = useRouter();
+
+  const dispatch = useDispatch()
 
   const userData = useSelector((state) => state.User);
   const systemconfig = useSelector(sysConfigdata);
@@ -33,7 +35,7 @@ const Bookmark = ({ t }) => {
 
   // check if the quiz mode are unable or not
   const checkBookmarData = () => {
-    if (systemconfig.quiz_zone_mode !== '1' && systemconfig.guess_the_word_question !== '1' && systemconfig.audio_mode_question !== '1' && systemconfig.maths_quiz_mode !== '1') {
+    if (systemconfig.quiz_zone_mode !== '1' && systemconfig.guess_the_word_question !== '1' && systemconfig.audio_mode_question !== '1') {
       toast.error('No Bookmark Questions Found')
       // navigate('/profile')
     }
@@ -48,9 +50,9 @@ const Bookmark = ({ t }) => {
       setKey('AudioQuestion')
     }
     if (systemconfig.audio_mode_question !== '1') {
-      setKey('MathQuestion')
+      setKey('Quizzone')
     }
-    if (systemconfig.guess_the_word_question !== '1' && systemconfig.audio_mode_question !== '1' && systemconfig.maths_quiz_mode !== '1') {
+    if (systemconfig.guess_the_word_question !== '1' && systemconfig.audio_mode_question !== '1') {
       setKey('Quizzone')
     }
   }
@@ -59,20 +61,20 @@ const Bookmark = ({ t }) => {
 
 
   // get correct answers from response data with decypt answers
-  const getCorrectAnswer = (data, decryptedAnswer) => {
-    switch (decryptedAnswer) {
-      case 'a':
-        return data.optiona
-      case 'b':
-        return data.optionb
-      case 'c':
-        return data.optionc
-      case 'd':
-        return data.optiond
-      default:
-        return data.optione
-    }
-  }
+  // const getCorrectAnswer = (data, decryptedAnswer) => {
+  //   switch (decryptedAnswer) {
+  //     case 'a':
+  //       return data.optiona
+  //     case 'b':
+  //       return data.optionb
+  //     case 'c':
+  //       return data.optionc
+  //     case 'd':
+  //       return data.optiond
+  //     default:
+  //       return data.optione
+  //   }
+  // }
 
   useEffect(() => {
 
@@ -82,23 +84,22 @@ const Bookmark = ({ t }) => {
     const quizzonetype = 1;
     const guessthewordtype = 3;
     const audioquiztype = 4;
-    const mathquiztype = 5
 
 
     // quizzone
-    getbookmarkApi(
-      quizzonetype,
-      (response) => {
+    getbookmarkApi({
+      type: quizzonetype,
+      onSuccess: (response) => {
         // Loadbookmarkdata(response.data)
         const questions = response.data.map((data) => {
 
-          const decryptedAnswer = decryptAnswer(data.answer, userData?.data?.firebase_id);
+          // const decryptedAnswer = decryptAnswer(data.answer, userData?.data?.firebase_id);
 
-          const correctAnswer = getCorrectAnswer(data, decryptedAnswer);
+          // const correctAnswer = getCorrectAnswer(data, decryptedAnswer);
 
           return {
             ...data,
-            correctAnswer: correctAnswer,
+            // correctAnswer: correctAnswer,
           };
 
         });
@@ -106,16 +107,16 @@ const Bookmark = ({ t }) => {
         setQuizzoneQue(questions);
         setLoading(false);
       },
-      (error) => {
+      onError: (error) => {
         console.log(error);
       }
-    );
+    });
 
 
     // guess the word
-    getbookmarkApi(
-      guessthewordtype,
-      (response) => {
+    getbookmarkApi({
+      type: guessthewordtype,
+      onSuccess: (response) => {
         // Loadbookmarkdata(response.data)
         const questions = response.data.map((data) => {
 
@@ -126,69 +127,34 @@ const Bookmark = ({ t }) => {
         setGuesstheWordQue(questions);
         setLoading(false);
       },
-      (error) => {
+      onError: (error) => {
         console.log(error);
       }
-    );
+    });
 
     // audio quiz
-    getbookmarkApi(
-      audioquiztype,
-      (response) => {
+    getbookmarkApi({
+      type: audioquiztype,
+      onSuccess: (response) => {
         // Loadbookmarkdata(response.data)
         const questions = response.data.map((data) => {
 
-          const decryptedAnswer = decryptAnswer(data.answer, userData?.data?.firebase_id);
+          // const decryptedAnswer = decryptAnswer(data.answer, userData?.data?.firebase_id);
 
-          const correctAnswer = getCorrectAnswer(data, decryptedAnswer);
+          // const correctAnswer = getCorrectAnswer(data, decryptedAnswer);
 
           return {
             ...data,
-            correctAnswer: correctAnswer
+            // correctAnswer: correctAnswer
           };
         });
         setAudioQuizQue(questions);
         setLoading(false);
       },
-      (error) => {
+      onError: (error) => {
         console.log(error);
       }
-    );
-
-    // math quiz
-    getbookmarkApi(
-      mathquiztype,
-      (response) => {
-        const questions = response.data.map((data) => {
-
-          const decryptedAnswer = decryptAnswer(data.answer, userData?.data?.firebase_id);
-
-          // this for question
-          const questionText = data.question ? data.question?.replace(/<[^>]+>/g, "")?.replace(/\&nbsp;/g, "").trim() : "";
-
-          const question = <RenderHtmlContent htmlContent={questionText} />
-
-          // this for correct option answer
-          const correctAnswers = getCorrectAnswer(data, decryptedAnswer);
-
-          const optionsText = correctAnswers ? correctAnswers?.replace(/<[^>]+>/g, "")?.replace(/\&nbsp;/g, "").trim() : "";
-
-          const newCorrectAnswer = <RenderHtmlContent htmlContent={optionsText} />
-
-          return {
-            ...data,
-            question: question,
-            correctAnswer: newCorrectAnswer
-          };
-        });
-
-        setMathQuizQue(questions);
-        setLoading(false);
-      },
-      (error) => {
-        console.log(error);
-      }
-    );
+    });
   }, []);
 
   // quizzone delete
@@ -196,89 +162,85 @@ const Bookmark = ({ t }) => {
     const quizzonetype = 1;
     const bookmark = "0";
 
-    // quizzone
-    setbookmarkApi(question_id, bookmark, quizzonetype, (response) => {
-      const new_questions = quizzoneQue.filter((data) => {
-        return data.question_id !== question_id;
-      });
-      setQuizzoneQue(new_questions);
-      toast.success(t("Question removed from Bookmark"));
-      deleteBookmarkData(bookmark_id);
-    },
-      (error) => {
+
+    setbookmarkApi({
+      question_id: question_id,
+      bookmark: bookmark,
+      type: quizzonetype,
+      onSuccess: (response) => {
+        const new_questions = quizzoneQue.filter((data) => {
+          return data.question_id !== question_id;
+        });
+        setQuizzoneQue(new_questions);
+        toast.success(t("Que_removed_bookmark"));
+        deleteBookmarkData(bookmark_id);
+      },
+      onError: (error) => {
         const old_questions = quizzoneQue;
         setQuizzoneQue(old_questions);
         console.log(error);
       }
-    );
+    });
   };
   // guess the word delete
   const guesstheworddeleteBookmark = (question_id, bookmark_id) => {
     const guessthewordtype = 3;
     const bookmark = "0";
 
-    // quizzone
-    setbookmarkApi(question_id, bookmark, guessthewordtype, (response) => {
-      const new_questions = guessthewordQue.filter((data) => {
-        return data.question_id !== question_id;
-      });
-      setGuesstheWordQue(new_questions);
-      toast.success(t("Question removed from Bookmark"));
-      deleteBookmarkData(bookmark_id);
-    },
-      (error) => {
+
+    setbookmarkApi({
+      question_id: question_id,
+      bookmark: bookmark,
+      type: guessthewordtype,
+      onSuccess: (response) => {
+        const new_questions = guessthewordQue.filter((data) => {
+          return data.question_id !== question_id;
+        });
+        setGuesstheWordQue(new_questions);
+        toast.success(t("Que_removed_bookmark"));
+        deleteBookmarkData(bookmark_id);
+      },
+      onError: (error) => {
         const old_questions = guessthewordQue;
         setGuesstheWordQue(old_questions);
         console.log(error);
       }
-    );
+    });
   };
   // audio quiz delete
   const AudioquizdeleteBookmark = (question_id, bookmark_id) => {
     const audioquiztype = 4;
     const bookmark = "0";
 
-    // quizzone
-    setbookmarkApi(question_id, bookmark, audioquiztype, (response) => {
-      const new_questions = audioquizQue.filter((data) => {
-        return data.question_id !== question_id;
-      });
-      setAudioQuizQue(new_questions);
-      toast.success(t("Question removed from Bookmark"));
-      deleteBookmarkData(bookmark_id);
-    },
-      (error) => {
+
+    setbookmarkApi({
+      question_id: question_id,
+      bookmark: bookmark,
+      type: audioquiztype,
+      onSuccess: (response) => {
+        const new_questions = audioquizQue.filter((data) => {
+          return data.question_id !== question_id;
+        });
+        setAudioQuizQue(new_questions);
+        toast.success(t("Que_removed_bookmark"));
+        deleteBookmarkData(bookmark_id);
+      },
+      onError: (error) => {
         const old_questions = audioquizQue;
         setAudioQuizQue(old_questions);
         console.log(error);
       }
-    );
-  };
-  // math quiz delete
-  const mathquizdeleteBookmark = (question_id, bookmark_id) => {
-    const mathquiztype = 5;
-    const bookmark = "0";
-
-    // quizzone
-    setbookmarkApi(question_id, bookmark, mathquiztype, (response) => {
-      const new_questions = mathQue.filter((data) => {
-        return data.question_id !== question_id;
-      });
-      setMathQuizQue(new_questions);
-      toast.success(t("Question removed from Bookmark"));
-      deleteBookmarkData(bookmark_id);
-    },
-      (error) => {
-        const old_questions = mathQue;
-        setMathQuizQue(old_questions);
-        console.log(error);
-      }
-    );
+    });
   };
 
+  const handleClick = (id) => {
+    navigate.push("/play-bookmark-questions/")
+    dispatch(bookmarkId(id))
+
+  }
   return (
     <Layout>
-      <div className='Profile__Sec mt-5 Bookmark'>
+      <div className='Profile__Sec Bookmark'>
         <div className='container bookmark-data'>
 
           <div className='morphism morphisam'>
@@ -297,8 +259,14 @@ const Bookmark = ({ t }) => {
                   {systemconfig.quiz_zone_mode !== '1' ? (
                     null
                   ) :
-                    <Tab eventKey="Quizzone" title={t("Quizzone")}>
+                    <Tab eventKey="Quizzone" title={t("Quiz Zone")}>
                       <>
+                        {quizzoneQue?.length > 0 && <div className='outer__stage bookmark-box d-flex justify-content-between'>
+                          <span className='d-flex align-items-center'>{t('total')} {t('bookmark')} :&nbsp; <span className='fw-bold'>{quizzoneQue?.length}</span></span>
+                          <button className='btn btn-primary' onClick={()=>handleClick('1')}>
+                            {t('Play bookmark')}
+                          </button>
+                        </div>}
                         {loading ? (
                           <div className="text-center ">
                             <Skeleton count={5} />
@@ -314,17 +282,17 @@ const Bookmark = ({ t }) => {
                                   </div>
                                   <div className="content_stage">
                                     <p>
-                                      <RenderHtmlContent htmlContent=
+                                      {systemconfig.latex_mode === "1" ? <RenderHtmlContent htmlContent=
                                         {question.question}
-                                      />
+                                      /> : question.question}
                                     </p>
-                                    <span>
-                                      {t("Answer")}:<span className="ps-2">
-                                        <RenderHtmlContent htmlContent=
+                                    {/* <span>
+                                      {t("answer")}:<span className="ps-2">
+                                        {systemconfig.latex_mode === "1" ? <RenderHtmlContent htmlContent=
                                           {question && question.correctAnswer}
-                                        />
+                                        /> : question && question.correctAnswer}
                                       </span>
-                                    </span>
+                                    </span> */}
                                   </div>
                                   <div className="delete__stage">
                                     <button className="btn btn-primary" onClick={() => quizzonedeleteBookmark(question.question_id, question.id)}>
@@ -337,10 +305,10 @@ const Bookmark = ({ t }) => {
                           })
                         ) : (
                           <>
-                            <h4 className="text-center mb-4 mt-5">{t("No Data Found")}</h4>
+                            <h4 className="text-center mb-4 mt-5">{t("no_data_found")}</h4>
                             <div className="play__button">
                               <Link href="/" className="btn btn-primary d-block">
-                                {t("Back")}
+                                {t("back")}
                               </Link>
                             </div>
                           </>
@@ -349,7 +317,7 @@ const Bookmark = ({ t }) => {
                         {visible < quizzoneQue?.length && (
                           <div className="col-md-12 text-center">
                             <div id="load-more" className="btn primary-btn load-more-btn text-white" onClick={showMoreItems}>
-                              <span>{t("Load More")}</span>
+                              <span>{t("load_more")}</span>
                             </div>
                           </div>
                         )}
@@ -359,8 +327,14 @@ const Bookmark = ({ t }) => {
                   {systemconfig.guess_the_word_question !== '1' ? (
                     null
                   ) :
-                    <Tab eventKey="GuesstheWord" title={t("GuesstheWord")}>
+                    <Tab eventKey="GuesstheWord" title={t("Guess The Word")}>
                       <>
+                      {guessthewordQue?.length > 0 && <div className='outer__stage bookmark-box d-flex justify-content-between'>
+                          <span className='d-flex align-items-center'>{t('total')} {t('bookmark')} :&nbsp; <span className='fw-bold'>{guessthewordQue?.length}</span></span>
+                          <button className='btn btn-primary' onClick={()=>handleClick('3')}>
+                            {t('Play bookmark')}
+                          </button>
+                        </div>}
                         {loading ? (
                           <div className="text-center ">
                             <Skeleton count={5} />
@@ -375,10 +349,10 @@ const Bookmark = ({ t }) => {
                                   </div>
                                   <div className="content_stage">
                                     <p>{question.question}</p>
-                                    <span>
-                                      {t("Answer")}: <span className="ps-2">{question && question.answer}</span>
-                                      {/* {t("Answer")}: <span >{question.textAnswer ? question["option" + question.textAnswer] : t("Not Attempted")}</span> */}
-                                    </span>
+                                    {/* <span>
+                                      {t("answer")}: <span className="ps-2">{question && question.answer}</span>
+                                      {t("answer")}: <span >{question.textAnswer ? question["option" + question.textAnswer] : t("not_att")}</span>
+                                    </span> */}
                                   </div>
                                   <div className="delete__stage">
                                     <button className="btn btn-primary" onClick={() => guesstheworddeleteBookmark(question.question_id, question.id)}>
@@ -391,10 +365,10 @@ const Bookmark = ({ t }) => {
                           })
                         ) : (
                           <>
-                            <h4 className="text-center mb-4 mt-5">{t("No Data Found")}</h4>
+                            <h4 className="text-center mb-4 mt-5">{t("no_data_found")}</h4>
                             <div className="play__button">
                               <Link href="/" className="btn btn-primary d-block">
-                                {t("Back")}
+                                {t("back")}
                               </Link>
                             </div>
                           </>
@@ -403,7 +377,7 @@ const Bookmark = ({ t }) => {
                         {visible < guessthewordQue?.length && (
                           <div className="col-md-12 text-center">
                             <div id="load-more" className="btn primary-btn load-more-btn text-white" onClick={showMoreItems}>
-                              <span>{t("Load More")}</span>
+                              <span>{t("load_more")}</span>
                             </div>
                           </div>
                         )}
@@ -414,8 +388,14 @@ const Bookmark = ({ t }) => {
                     null
                   ) :
 
-                    <Tab eventKey="AudioQuestion" title={t("AudioQuestion")}>
+                    <Tab eventKey="AudioQuestion" title={t("Audio Questions")}>
                       <>
+                      {audioquizQue?.length > 0 && <div className='outer__stage bookmark-box d-flex justify-content-between'>
+                          <span className='d-flex align-items-center'>{t('total')} {t('bookmark')} :&nbsp; <span className='fw-bold'>{audioquizQue?.length}</span></span>
+                          <button className='btn btn-primary' onClick={()=>handleClick('4')}>
+                            {t('Play bookmark')}
+                          </button>
+                        </div>}
                         {loading ? (
                           <div className="text-center ">
                             <Skeleton count={5} />
@@ -430,10 +410,10 @@ const Bookmark = ({ t }) => {
                                   </div>
                                   <div className="content_stage">
                                     <p>{question.question}</p>
-                                    <span>
-                                      {t("Answer")}: <span className="ps-2">{question && question.correctAnswer}</span>
-                                      {/* {t("Answer")}: <span >{question.textAnswer ? question["option" + question.textAnswer] : t("Not Attempted")}</span> */}
-                                    </span>
+                                    {/* <span>
+                                      {t("answer")}: <span className="ps-2">{question && question.correctAnswer}</span>
+                                      {t("answer")}: <span >{question.textAnswer ? question["option" + question.textAnswer] : t("not_att")}</span>
+                                    </span> */}
                                   </div>
                                   <div className="delete__stage">
                                     <button className="btn btn-primary" onClick={() => AudioquizdeleteBookmark(question.question_id, question.id)}>
@@ -446,10 +426,10 @@ const Bookmark = ({ t }) => {
                           })
                         ) : (
                           <>
-                            <h4 className="text-center mb-4 mt-5">{t("No Data Found")}</h4>
+                            <h4 className="text-center mb-4 mt-5">{t("no_data_found")}</h4>
                             <div className="play__button">
                               <Link href="/" className="btn btn-primary d-block">
-                                {t("Back")}
+                                {t("back")}
                               </Link>
                             </div>
                           </>
@@ -457,70 +437,15 @@ const Bookmark = ({ t }) => {
                         {visible < audioquizQue?.length && (
                           <div className="col-md-12 text-center">
                             <div id="load-more" className="btn primary-btn load-more-btn text-white" onClick={showMoreItems}>
-                              <span>{t("Load More")}</span>
+                              <span>{t("load_more")}</span>
                             </div>
                           </div>
                         )}
                       </>
                     </Tab>
                   }
-
-                  {systemconfig.maths_quiz_mode !== '1' ? (
-                    null
-                  ) :
-                    <Tab eventKey="MathQuestion" title={t("MathQuestion")}>
-                      <>
-                        {loading ? (
-                          <div className="text-center ">
-                            <Skeleton count={5} />
-                          </div>
-                        ) : mathQue?.length > 0 ? (
-                          mathQue.slice(0, visible).map((question, key) => {
-                            return (
-                              <div className="outer__stage bookmark-box" key={key}>
-                                <div className="three__stage">
-                                  <div className="number_stage">
-                                    <span>{key + 1}</span>
-                                  </div>
-                                  <div className="content_stage">
-                                    <p>{question.question}</p>
-                                    <span>
-                                      {t("Answer")}: <span className="ps-2">{question && question.correctAnswer}</span>
-                                      {/* {t("Answer")}: <span >{question.textAnswer ? question["option" + question.textAnswer] : t("Not Attempted")}</span> */}
-                                    </span>
-                                  </div>
-                                  <div className="delete__stage">
-                                    <button className="btn btn-primary" onClick={() => mathquizdeleteBookmark(question.question_id, question.id)}>
-                                      <FaRegTrashAlt />
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <>
-                            <h4 className="text-center mb-4 mt-5">{t("No Data Found")}</h4>
-                            <div className="play__button">
-                              <Link href="/" className="btn btn-primary d-block">
-                                {t("Back")}
-                              </Link>
-                            </div>
-                          </>
-                        )}
-                        {visible < mathQue?.length && (
-                          <div className="col-md-12 text-center">
-                            <div id="load-more" className="btn primary-btn load-more-btn text-white" onClick={showMoreItems}>
-                              <span>{t("Load More")}</span>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    </Tab>
-                  }
-
                 </Tabs>
-              </div> 
+              </div>
             </div>
           </div>
         </div>

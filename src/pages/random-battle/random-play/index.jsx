@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import toast from 'react-hot-toast'
 import { withTranslation } from 'react-i18next'
@@ -12,6 +12,7 @@ import { groupbattledata } from 'src/store/reducers/groupbattleSlice'
 import dynamic from 'next/dynamic'
 const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 import { t } from 'i18next'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
 const RandomQuestions = dynamic(() => import('src/components/Quiz/RandomBattle/RandomQuestions'), {
   ssr: false
 })
@@ -28,7 +29,7 @@ const RandomPlay = () => {
 
   let user2uid = groupBattledata?.user2uid
 
-  const [questions, setQuestions] = useState([{ id: '', isBookmarked: false }])
+  const [questions, setQuestions] = useState([])
 
   const systemconfig = useSelector(sysConfigdata)
 
@@ -41,12 +42,13 @@ const RandomPlay = () => {
   }, [])
 
   const getNewQuestions = (match_id, category, destroy_match) => {
-    if (systemconfig.battle_random_category_mode == "1") {
-      RandomQuestionsApi(
-        match_id,
-        category,
-        destroy_match,
-        (response) => {
+    if (systemconfig.battle_mode_random_category == "1") {
+      RandomQuestionsApi({
+        random: "",
+        match_id: match_id,
+        category: category,
+        destroy_match: destroy_match,
+        onSuccess: (response) => {
           let questions = response.data.map((data) => {
 
             let question = data.question
@@ -64,18 +66,18 @@ const RandomPlay = () => {
           // console.log("que",questions)
           setQuestions(questions);
         },
-        (error) => {
-          toast.error(t("No Questions Found"));
-          navigate.push("/all-games");
+        onError: (error) => {
+          toast.error(t("no_que_found"));
+          navigate.push("/quiz-play");
           console.log(error);
         }
-      );
+      });
     } else {
-      RandomQuestionsApi(
-        match_id,
-        "",
-        destroy_match,
-        (response) => {
+      RandomQuestionsApi({
+        random: "",
+        match_id: match_id,
+        destroy_match: destroy_match,
+        onSuccess: (response) => {
           let questions = response.data.map((data) => {
 
             let question = data.question
@@ -93,12 +95,12 @@ const RandomPlay = () => {
           // console.log("que",questions)
           setQuestions(questions);
         },
-        (error) => {
-          toast.error(t("No Questions Found"));
-          navigate.push("/all-games");
+        onError: (error) => {
+          toast.error(t("no_que_found"));
+          navigate.push("/quiz-play");
           console.log(error);
         }
-      );
+      });
     }
   };
 
@@ -121,32 +123,28 @@ const RandomPlay = () => {
 
   return (
     <Layout>
-      <Breadcrumb title={t('1 vs 1 Battle')} content="" contentTwo="" />
+      <Breadcrumb title={t('1 v/s 1 Battle')} content="" contentTwo="" />
       <div className='funandlearnplay dashboard battlerandom'>
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 <>
-                  {(() => {
-                    if (questions && questions?.length > 0 && questions[0]?.id !== '') {
-                      return (
-                        <RandomQuestions
-                          questions={questions}
-                          timerSeconds={TIMER_SECONDS}
-                          onOptionClick={handleAnswerOptionClick}
-                          onQuestionEnd={onQuestionEnd}
-                          showQuestions={true}
-                        />
-                      )
-                    } else {
-                      return (
-                        <div className='text-center text-white'>
-                          <p>{'No Questions Found'}</p>
-                        </div>
-                      )
-                    }
-                  })()}
+                  {questions.length > 0 ? (
+                    <Suspense fallback={<QuestionSkeleton />}>
+                      <RandomQuestions
+                        questions={questions}
+                        timerSeconds={TIMER_SECONDS}
+                        onOptionClick={handleAnswerOptionClick}
+                        onQuestionEnd={onQuestionEnd}
+                        showQuestions={true}
+                      />
+                    </Suspense>
+                  ) : (
+                    <div className='text-center text-white'>
+                      {/* <p>{t('No Questions Found')}</p> */}
+                    </div>
+                  )}
                 </>
               </div>
             </div>

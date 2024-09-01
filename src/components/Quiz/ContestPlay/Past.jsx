@@ -3,6 +3,7 @@ import { t } from "i18next";
 import { withTranslation } from "react-i18next";
 import Skeleton from 'react-loading-skeleton';
 import errorimg from "src/assets/images/error.svg"
+import { truncate } from "src/utils";
 const Past = ({ data, LeaderBoard }) => {
     const [loading, setLoading] = useState(true);
 
@@ -34,18 +35,18 @@ const Past = ({ data, LeaderBoard }) => {
                                             </div>
                                             <div className="card-details">
                                                 <div className="card-title">
-                                                    <h3>{pastData.name}</h3>
-                                                    <p>{pastData.description}</p>
+                                                    <h3>{truncate(pastData.name, 23)}</h3>
+                                                    <p>{truncate(pastData.description, 27)}</p>
                                                 </div>
 
                                                 <div className="card-footer">
                                                     <div className="upper-footer">
                                                         <div className="card-entry-fees">
-                                                            <p>{t("Entry Fees")}</p>
-                                                            <span>{pastData.entry} {t("Coins")}</span>
+                                                            <p>{t("entry_fees")}</p>
+                                                            <span>{pastData.entry} {t("coins")}</span>
                                                         </div>
                                                         <div className="card-ends-on">
-                                                            <p>{t("Ends On")}</p>
+                                                            <p>{t("ends_on")}</p>
                                                             <span>{pastData.end_date}</span>
                                                         </div>
                                                         <div className="card-players">
@@ -61,7 +62,7 @@ const Past = ({ data, LeaderBoard }) => {
                                                         </div> */}
                                                         <div className="card-btn-play">
                                                             <p className="btn btn-play" >
-                                                                {t("Leaderboard")}
+                                                                {t("leader_board")}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -74,7 +75,7 @@ const Past = ({ data, LeaderBoard }) => {
                         ) : (
                             <div className="text-center mt-4 commonerror">
                                 <img src={errorimg.src} title="wrteam" className="error_img" />
-                                <p>{t("No Past Contest")}</p>
+                                <p>{t("no_past_contest")}</p>
                             </div>
 
                         )}

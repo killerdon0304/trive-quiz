@@ -1,10 +1,14 @@
 import cryptoJs from "crypto-js";
 import { store } from "../store/store";
-import { getbookmarkApi } from "../store/actions/campaign";
+import { getbookmarkApi, ReportQuestionApi } from "../store/actions/campaign";
 import { Loadbookmarkdata } from "../store/reducers/bookmarkSlice";
 import { useEffect, useRef } from "react";
 import DOMPurify from 'dompurify';
 import toast from "react-hot-toast";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+import { t } from "i18next";
+import userImg from 'src/assets/images/user.svg'
 // -----------------global functions-----------------------------
 
 // getSiblings, getClosest, slideUp, slideDown, slideToggle :- mobile navigation and navbar for header
@@ -187,10 +191,12 @@ export const calculateScore = async (score, totalQuestions, correctTypeQuizScore
 
 // load bookmark data
 export const getAndUpdateBookmarkData = (type) => {
-    getbookmarkApi(type, (response) => {
-        Loadbookmarkdata(response.data)
-    }, (error) => {
-        // console.log(error);
+    getbookmarkApi({
+        type: type, onSuccess: (response) => {
+            Loadbookmarkdata(response.data)
+        }, onError: (error) => {
+            // console.log(error);
+        }
     })
 }
 
@@ -244,7 +250,7 @@ export const scrollhandler = (top) => {
 
 // server image error
 export const imgError = (e) => {
-    e.target.src = "/images/user.svg"
+    e.target.src = userImg.src
 }
 
 export const playAudio = (audioSrc) => {
@@ -434,13 +440,54 @@ export const isValidSlug = (slug) => {
     return slug && slug.trim() !== '';
 };
 
+export const useOverflowRefs = (questions, currentQuestion) => {
+    const buttonRefA = useRef(null);
+    const buttonRefB = useRef(null);
+    const buttonRefC = useRef(null);
+    const buttonRefD = useRef(null);
+    const buttonRefE = useRef(null);
+
+    applyOverflowStyle(buttonRefA, [
+        questions[currentQuestion],
+    ]);
+
+    applyOverflowStyle(buttonRefB, [
+        questions[currentQuestion],
+    ]);
+
+    applyOverflowStyle(buttonRefC, [
+        questions[currentQuestion],
+    ]);
+
+    applyOverflowStyle(buttonRefD, [
+        questions[currentQuestion],
+    ]);
+
+    applyOverflowStyle(buttonRefE, [
+        questions[currentQuestion],
+    ]);
+
+    return { buttonRefA, buttonRefB, buttonRefC, buttonRefD, buttonRefE };
+};
+
+export const applyOverflowStyle = (ref, dependencies) => {
+    useEffect(() => {
+        if (ref.current) {
+            const hasMathTex = ref.current.innerHTML.includes('math-tex');
+            const hasTable = ref.current.innerHTML.includes('<table');
+
+            const confForScrole = ref.current.scrollHeight > ref.current.clientHeight ? true : false
+
+            confForScrole ? ref.current.style.alignItems = "baseline" : ref.current.style.alignItems = "center";
+        }
+    }, dependencies);
+};
+
 export const RenderHtmlContent = ({ htmlContent }) => {
     const containerRef = useRef(null);
-
     useEffect(() => {
         // Sanitize HTML content
         const sanitizedHtml = DOMPurify && DOMPurify.sanitize(htmlContent);
-
         // Set the sanitized HTML content
         containerRef.current.innerHTML = sanitizedHtml;
 
@@ -460,24 +507,24 @@ const ERROR_CODES = {
     'auth/too-many-requests': 'Too many requests, try again later',
     'auth/operation-not-allowed': 'Operation not allowed',
     'auth/internal-error': 'Internal error occurred'
-  };
-  
-  // Error handling function
+};
+
+// Error handling function
 export const handleFirebaseAuthError = (errorCode) => {
     // Check if the error code exists in the global ERROR_CODES object
     if (ERROR_CODES.hasOwnProperty(errorCode)) {
-      // If the error code exists, log the corresponding error message
-      toast.error(ERROR_CODES[errorCode]);
-    //   console.error(ERROR_CODES[errorCode]);
+        // If the error code exists, log the corresponding error message
+        toast.error(ERROR_CODES[errorCode]);
+        //   console.error(ERROR_CODES[errorCode]);
     } else {
-      // If the error code is not found, log a generic error message
-      toast.error(`Unknown error occurred: ${errorCode}`);
-    //   console.error(`Unknown error occurred: ${errorCode}`);
+        // If the error code is not found, log a generic error message
+        toast.error(`Unknown error occurred: ${errorCode}`);
+        //   console.error(`Unknown error occurred: ${errorCode}`);
     }
-  
+
     // Optionally, you can add additional logic here to handle the error
     // For example, display an error message to the user, redirect to an error page, etc.
-  }
+}
 
 
 // message list of battle
@@ -500,3 +547,33 @@ export const messageList = () => {
     ];
     return messageListData;
 }
+
+// report Question 
+const MySwal = withReactContent(Swal);
+export const reportQuestion = (question_id) => {
+    MySwal.fire({
+        showCancelButton: true,
+        customClass: {
+            confirmButton: 'Swal-confirm-buttons',
+            cancelButton: "Swal-cancel-buttons"
+        },
+        confirmButtonText: t("continue"),
+        input: "textarea",
+        inputLabel: t("reason"),
+        inputPlaceholder: t("enter_reason"),
+        inputAttributes: {
+            "aria-label": t("enter_reason"),
+        },
+    }).then((result) => {
+        if (result.isConfirmed) {
+            ReportQuestionApi({
+                question_id: question_id, message: result.value, onSuccess: (response) => {
+                    Swal.fire(t("success"), t("Que_reported"), "success");
+                }, onError: (error) => {
+                    Swal.fire(t("ops"), t('Please'), t("try_again"), "error");
+                    console.log(error)
+                }
+            })
+        }
+    });
+};

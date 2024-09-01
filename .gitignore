@@ -5,6 +5,9 @@
 /.pnp
 .pnp.js
 
+# sitemap xml
+/public/sitemap.xml
+
 # testing
 /coverage
 
@@ -26,6 +29,8 @@ yarn-error.log*
 
 # local env files
 .env*.local
+dev.nix
+package-lock.json
 
 # vercel
 .vercel

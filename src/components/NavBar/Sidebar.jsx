@@ -1,13 +1,21 @@
 "use client"
 
 import dynamic from "next/dynamic";
+import { Drawer } from "antd";
+
 const MobileMenus = dynamic(() => import('./MobileSidebar/MobileMenus'), { ssr: false })
 const Logo = dynamic(() => import('../Logo/Logo'), { ssr: false })
 
 const Sidebar = ({ isActive, setIsActive, image }) => {
   return (
     <>
-      <div
+     <Drawer
+                placement="right"
+                closable={true}
+                open={isActive}
+                key="right"
+            > 
+                <div
         className={` tpsideinfo tp-side-info-area ${isActive ? "tp-sidebar-opened" : ""
           }`}
       >
@@ -34,6 +42,8 @@ const Sidebar = ({ isActive, setIsActive, image }) => {
         onClick={() => setIsActive(false)}
         className={`body-overlay ${isActive ? "opened" : ""}`}
       ></div>
+                </Drawer>
+
     </>
   );
 };

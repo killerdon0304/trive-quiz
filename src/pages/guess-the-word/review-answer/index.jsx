@@ -26,7 +26,7 @@ const Guessthewordplay = ({ t }) => {
         <div className='container'>
           <div className='row '>
             <div className='morphisam'>
-              <div className='whitebackground pt-3'>
+              <div className='whitebackground'>
                 <GuessthewordReviewAnswer questions={questions} goBack={handleReviewAnswerBack} />
               </div>
             </div>

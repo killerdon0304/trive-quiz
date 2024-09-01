@@ -67,26 +67,24 @@ const Invite_friends = () => {
                     LoadNewBadgesData('sharing_caring', '1')
                     toast.success(t(res?.data?.notification_body))
                     const status = 0
-                    UserCoinScoreApi(
-                        sharing_caring_coin,
-                        null,
-                        null,
-                        t('sharing caring badge reward'),
-                        status,
-                        response => {
-                            getusercoinsApi(
-                                responseData => {
+                    UserCoinScoreApi({
+                        coins: sharing_caring_coin,
+                        title: t('sharing_caring_badge_reward'),
+                        status: status,
+                        onSuccess: response => {
+                            getusercoinsApi({
+                                onSuccess: responseData => {
                                     updateUserDataInfo(responseData.data)
                                 },
-                                error => {
+                                onError: error => {
                                     console.log(error)
                                 }
-                            )
+                            })
                         },
-                        error => {
+                        onError: error => {
                             console.log(error)
                         }
-                    )
+                    })
                 },
                 error => {
                     console.log(error)
@@ -94,9 +92,11 @@ const Invite_friends = () => {
             )
         }
     }
+    const refferMessage = `${t('hey_there_earn')} ${systemconfig.refer_coin} ${t('coins')} ${t('apply_referral_code')} ${userData && userData?.data?.refer_code}
+ ${t('compete_for_prizes')} ${process.env.NEXT_PUBLIC_APP_WEB_URL + "/auth/sign-up/"}`
     return (
         <Layout>
-            <div className='Profile__Sec mt-5 Invite__friends'>
+            <div className='Profile__Sec Invite__friends'>
                 <div className='container'>
                     <div className="morphism morphisam">
                         <div className='row pro-card position-relative'>
@@ -111,7 +111,7 @@ const Invite_friends = () => {
                                     <div className='col-lg-12 col-md-12 col-12 border_line justify-content-center align-items-center d-flex flex-column text-center'>
                                         <div className='refer_earn_title'>
                                             <h3>
-                                                <b className='headline'> {t('refer-earn')}</b>
+                                                <b className='headline'> {t('refer_earn')}</b>
                                             </h3>
 
                                             <div className="giftImg">
@@ -121,14 +121,14 @@ const Invite_friends = () => {
 
                                             <div className="getCoinsDiv">
                                                 <span> <img src={coinimg.src} alt="" /> {systemconfig.refer_coin} </span>
-                                                <span>{t("Get Free Coin")}</span>
+                                                <span>{t("get_free_coin")}</span>
                                             </div>
 
-                                            <p className='referPara'>{t('Refer and Earn Text')}</p>
+                                            <p className='referPara'>{t('refer_and_earn_text')}</p>
 
                                             <div className="referCodeWrapper">
                                                 <span>
-                                                    <b>{t('Your Referral Code')}</b>
+                                                    <b>{t('your_referral_code')}</b>
                                                 </span>
                                                 <div className='copy__referal'>
                                                     <span className='referCode'>{userData && userData?.data?.refer_code}</span>
@@ -149,7 +149,7 @@ const Invite_friends = () => {
                                                         </span>
                                                     </button>
                                                 </div>
-                                                <span>{t('send-to-friend')}</span>
+                                                <span>{t('send_to_friend')}</span>
                                             </div>
 
                                         </div>
@@ -157,12 +157,12 @@ const Invite_friends = () => {
 
                                         <div className='invite__now'>
                                             <p>
-                                                <b>{t('Invite Now')}</b>
+                                                <b>{t('invite_now')}</b>
                                             </p>
                                             <ul className='social__icons'>
                                                 <li>
                                                     <a
-                                                        href={'https://web.whatsapp.com/send?text=' + userData?.data?.refer_code}
+                                                        href={'https://web.whatsapp.com/send?text=' + refferMessage}
                                                         target='_blank'
                                                         rel='noreferrer'
                                                     >
@@ -173,7 +173,7 @@ const Invite_friends = () => {
                                                 </li>
                                                 <li>
                                                     <a
-                                                        href={'https://twitter.com/intent/tweet?text=' + userData?.data?.refer_code}
+                                                        href={'https://twitter.com/intent/tweet?text=' + refferMessage}
                                                         target='_blank'
                                                         rel='noreferrer'
                                                     >
@@ -190,7 +190,7 @@ const Invite_friends = () => {
                                                             '//' +
                                                             window.location.hostname +
                                                             '&quote=' +
-                                                            userData?.data?.refer_code
+                                                            refferMessage
                                                         }
                                                         target='_blank'
                                                         rel='noreferrer'

@@ -25,7 +25,6 @@ import {
   getRandomQuestionsApi,
   getreportQuestionApi,
   getselfQuestionsApi,
-  getSliderApi,
   getSubcategoriesApi,
   getTableTrackerDataApi,
   gettrueandfalsequestions,
@@ -62,21 +61,14 @@ export const deleteuserAccountApi = ({ onSuccess = () => {}, onError = () => {},
   )
 }
 
-// slider api
-export const sliderApi = (onSuccess, onError, onStart) => {
-  store.dispatch(
-    apiCallBegan({
-      ...getSliderApi(),
-      displayToast: false,
-      onStart,
-      onSuccess,
-      onError
-    })
-  )
-}
-
 // categories api
-export const categoriesApi = (type, sub_type, onSuccess, onError, onStart) => {
+export const categoriesApi = ({
+  type = '',
+  sub_type = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getCategoriesApi(type, sub_type),
@@ -89,7 +81,13 @@ export const categoriesApi = (type, sub_type, onSuccess, onError, onStart) => {
 }
 
 // get subcategroies by main categories
-export const subcategoriesApi = (category_id, subcategory_id, onSuccess, onError, onStart) => {
+export const subcategoriesApi = ({
+  category_id = '',
+  subcategory_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getSubcategoriesApi(category_id, subcategory_id),
@@ -102,7 +100,13 @@ export const subcategoriesApi = (category_id, subcategory_id, onSuccess, onError
 }
 
 // get level data from subcategories or categories
-export const levelDataApi = (category_id, subcategory_id, onSuccess, onError, onStart) => {
+export const levelDataApi = ({
+  category_id = '',
+  subcategory_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getLevelDataApi(category_id, subcategory_id),
@@ -115,7 +119,14 @@ export const levelDataApi = (category_id, subcategory_id, onSuccess, onError, on
 }
 
 // set level data from subcategory and category
-export const leveldataApi = (category_id, subcategory_id, level, onSuccess, onError, onStart) => {
+export const leveldataApi = ({
+  category_id = '',
+  subcategory_id = '',
+  level = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setLevelDataApi(category_id, subcategory_id, level),
@@ -128,7 +139,7 @@ export const leveldataApi = (category_id, subcategory_id, level, onSuccess, onEr
 }
 
 // get daily Quiz
-export const dailyQuizApi = (onSuccess, onError, onStart) => {
+export const dailyQuizApi = ({ onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
   store.dispatch(
     apiCallBegan({
       ...getDailyQuizApi(),
@@ -141,7 +152,12 @@ export const dailyQuizApi = (onSuccess, onError, onStart) => {
 }
 
 // get true and false
-export const trueandfalsequestionsApi = (type, onSuccess, onError, onStart) => {
+export const trueandfalsequestionsApi = ({
+  type = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...gettrueandfalsequestions(type),
@@ -154,7 +170,13 @@ export const trueandfalsequestionsApi = (type, onSuccess, onError, onStart) => {
 }
 
 // get fun and learn
-export const getfunandlearnApi = (type, type_id, onSuccess, onError, onStart) => {
+export const getfunandlearnApi = ({
+  type = '',
+  type_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getfunandlearn(type, type_id),
@@ -167,7 +189,12 @@ export const getfunandlearnApi = (type, type_id, onSuccess, onError, onStart) =>
 }
 
 // get fun and learn questions
-export const funandlearnquestionsApi = (fun_n_learn_id, onSuccess, onError, onStart) => {
+export const funandlearnquestionsApi = ({
+  fun_n_learn_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getfunandlearnquestions(fun_n_learn_id),
@@ -180,7 +207,13 @@ export const funandlearnquestionsApi = (fun_n_learn_id, onSuccess, onError, onSt
 }
 
 // get guess the word
-export const guessthewordApi = (type, type_id, onSuccess, onError, onStart) => {
+export const guessthewordApi = ({
+  type = '',
+  type_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getguessthewordApi(type, type_id),
@@ -192,8 +225,15 @@ export const guessthewordApi = (type, type_id, onSuccess, onError, onStart) => {
   )
 }
 
-// get self Learning questions
-export const selfQuestionsApi = (category, subcategory, limit, onSuccess, onError, onStart) => {
+// get Self Challenge questions
+export const selfQuestionsApi = ({
+  category = '',
+  subcategory = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getselfQuestionsApi(category, subcategory, limit),
@@ -206,7 +246,7 @@ export const selfQuestionsApi = (category, subcategory, limit, onSuccess, onErro
 }
 
 // get Contest Play
-export const ContestPlayApi = (onSuccess, onError, onStart) => {
+export const ContestPlayApi = ({ onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
   store.dispatch(
     apiCallBegan({
       ...getContestApi(),
@@ -219,7 +259,12 @@ export const ContestPlayApi = (onSuccess, onError, onStart) => {
 }
 
 // get contest questions
-export const contestQuestionsApi = (contest_id, onSuccess, onError, onStart) => {
+export const contestQuestionsApi = ({
+  contest_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getcontestQuestionsApi(contest_id),
@@ -232,7 +277,12 @@ export const contestQuestionsApi = (contest_id, onSuccess, onError, onStart) => 
 }
 
 // get contest leaderboard
-export const ContestLeaderboardApi = (contest_id, onSuccess, onError, onStart) => {
+export const ContestLeaderboardApi = ({
+  contest_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getContestLeaderboardApi(contest_id),
@@ -243,17 +293,16 @@ export const ContestLeaderboardApi = (contest_id, onSuccess, onError, onStart) =
     })
   )
 }
-
 // set contest leaderboard
-export const setcontestleaderboardApi = (
-  contest_id,
-  questions_attended,
-  correct_answers,
-  score,
-  onSuccess,
-  onError,
-  onStart
-) => {
+export const setcontestleaderboardApi = ({
+  contest_id = '',
+  questions_attended = '',
+  correct_answers = '',
+  score = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setContestLeaderboardApi(contest_id, questions_attended, correct_answers, score),
@@ -266,7 +315,14 @@ export const setcontestleaderboardApi = (
 }
 
 // get questions api
-export const QuestionsApi = (category_id, subcategory_id, level, onSuccess, onError, onStart) => {
+export const QuestionsApi = ({
+  category_id = '',
+  subcategory_id = '',
+  level = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getQuestionsApi(category_id, subcategory_id, level),
@@ -279,10 +335,18 @@ export const QuestionsApi = (category_id, subcategory_id, level, onSuccess, onEr
 }
 
 // get random questions api
-export const RandomQuestionsApi = (match_id, category, destroy_match, onSuccess, onError, onStart) => {
+export const RandomQuestionsApi = ({
+  match_id = '',
+  category = '',
+  destroy_match = '',
+  random = "",
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
-      ...getRandomQuestionsApi(match_id, category, destroy_match),
+      ...getRandomQuestionsApi(match_id, category, destroy_match,random),
       displayToast: false,
       onStart,
       onSuccess,
@@ -292,7 +356,12 @@ export const RandomQuestionsApi = (match_id, category, destroy_match, onSuccess,
 }
 
 // get questions by room id
-export const QuestionsByRoomIdApi = (room_id, onSuccess, onError, onStart) => {
+export const QuestionsByRoomIdApi = ({
+  room_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getQuestionsByRoomIdApi(room_id),
@@ -305,7 +374,15 @@ export const QuestionsByRoomIdApi = (room_id, onSuccess, onError, onStart) => {
 }
 
 // create multi room
-export const createMultiRoomApi = (room_id, room_type, category, no_of_que, onSuccess, onError, onStart) => {
+export const createMultiRoomApi = ({
+  room_id = '',
+  room_type = '',
+  category = '',
+  no_of_que = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getcreateMultiRoomApi(room_id, room_type, category, no_of_que),
@@ -318,7 +395,13 @@ export const createMultiRoomApi = (room_id, room_type, category, no_of_que, onSu
 }
 
 // get audio questions
-export const audioquestionsApi = (type, type_id, onSuccess, onError, onStart) => {
+export const audioquestionsApi = ({
+  type = '',
+  type_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getAudioquestionsApi(type, type_id),
@@ -331,7 +414,14 @@ export const audioquestionsApi = (type, type_id, onSuccess, onError, onStart) =>
 }
 
 // set bookmark api
-export const setbookmarkApi = (question_id, bookmark, type, onSuccess, onError, onStart) => {
+export const setbookmarkApi = ({
+  question_id = '',
+  bookmark = '',
+  type = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setBookmarkApi(question_id, bookmark, type),
@@ -344,7 +434,7 @@ export const setbookmarkApi = (question_id, bookmark, type, onSuccess, onError, 
 }
 
 // get bookmark api
-export const getbookmarkApi = (type, onSuccess, onError, onStart) => {
+export const getbookmarkApi = ({ type = '', onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
   store.dispatch(
     apiCallBegan({
       ...getBookmarkApi(type),
@@ -357,7 +447,13 @@ export const getbookmarkApi = (type, onSuccess, onError, onStart) => {
 }
 
 // get daily leaderboard api
-export const DailyLeaderBoardApi = (offset, limit, onSuccess, onError, onStart) => {
+export const DailyLeaderBoardApi = ({
+  offset = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getDailyLeaderBoardApi(offset, limit),
@@ -370,7 +466,13 @@ export const DailyLeaderBoardApi = (offset, limit, onSuccess, onError, onStart) 
 }
 
 // get montly leaderboard api
-export const MonthlyLeaderBoardApi = (offset, limit, onSuccess, onError, onStart) => {
+export const MonthlyLeaderBoardApi = ({
+  offset = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getMonthlyLeaderBoardApi(offset, limit),
@@ -383,7 +485,13 @@ export const MonthlyLeaderBoardApi = (offset, limit, onSuccess, onError, onStart
 }
 
 // get global leaderboard api
-export const GlobleLeaderBoardApi = (offset, limit, onSuccess, onError, onStart) => {
+export const GlobleLeaderBoardApi = ({
+  offset = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getGlobleLeaderBoardApi(offset, limit),
@@ -396,7 +504,16 @@ export const GlobleLeaderBoardApi = (offset, limit, onSuccess, onError, onStart)
 }
 
 // user coin score api
-export const UserCoinScoreApi = async (coins, score, type, title, status, onSuccess, onError, onStart) => {
+export const UserCoinScoreApi = async ({
+  coins = '',
+  score = '',
+  type = '',
+  title = '',
+  status = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setUserCoinScoreApi(coins, score, type, title, status),
@@ -409,7 +526,13 @@ export const UserCoinScoreApi = async (coins, score, type, title, status, onSucc
 }
 
 // report question api
-export const ReportQuestionApi = (question_id, message, onSuccess, onError, onStart) => {
+export const ReportQuestionApi = ({
+  question_id = '',
+  message = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getreportQuestionApi(question_id, message),
@@ -422,15 +545,15 @@ export const ReportQuestionApi = (question_id, message, onSuccess, onError, onSt
 }
 
 // set user statistics api
-export const UserStatisticsApi = (
-  questions_answered,
-  correct_answers,
-  category_id,
-  percentage,
-  onSuccess,
-  onError,
-  onStart
-) => {
+export const UserStatisticsApi = ({
+  questions_answered = '',
+  correct_answers = '',
+  category_id = '',
+  percentage = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setUserStatisticsApi(questions_answered, correct_answers, category_id, percentage),
@@ -443,7 +566,13 @@ export const UserStatisticsApi = (
 }
 
 // get maths questions api
-export const getmathQuestionsApi = (type, type_id, onSuccess, onError, onStart) => {
+export const getmathQuestionsApi = ({
+  type = '',
+  type_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getMathQuestionsApi(type, type_id),
@@ -456,7 +585,15 @@ export const getmathQuestionsApi = (type, type_id, onSuccess, onError, onStart) 
 }
 
 // set quiz CategoriesApi
-export const setQuizCategoriesApi = (type, category_id, subcategory_id, type_id, onSuccess, onError, onStart) => {
+export const setQuizCategoriesApi = ({
+  type = '',
+  category_id = '',
+  subcategory_id = '',
+  type_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setquizCategoriesApi(type, category_id, subcategory_id, type_id),
@@ -469,7 +606,14 @@ export const setQuizCategoriesApi = (type, category_id, subcategory_id, type_id,
 }
 
 // get exam module
-export const getexamModuleApi = (type, offset, limit, onSuccess, onError, onStart) => {
+export const getexamModuleApi = ({
+  type = '',
+  offset = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getExamModuleApi(type, offset, limit),
@@ -482,7 +626,12 @@ export const getexamModuleApi = (type, offset, limit, onSuccess, onError, onStar
 }
 
 // get exam module questions
-export const getexamModuleQuestionsApi = (exam_module_id, onSuccess, onError, onStart) => {
+export const getexamModuleQuestionsApi = ({
+  exam_module_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getExamModuleQuestionsApi(exam_module_id),
@@ -495,17 +644,17 @@ export const getexamModuleQuestionsApi = (exam_module_id, onSuccess, onError, on
 }
 
 // set ExamModule Result
-export const setExammoduleresultApi = (
-  exam_module_id,
-  total_duration,
-  obtained_marks,
-  statistics,
-  rules_violated,
-  captured_question_ids,
-  onSuccess,
-  onError,
-  onStart
-) => {
+export const setExammoduleresultApi = ({
+  exam_module_id = '',
+  total_duration = '',
+  obtained_marks = '',
+  statistics = '',
+  rules_violated = '',
+  captured_question_ids = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setExamModuleResultApi(
@@ -525,7 +674,14 @@ export const setExammoduleresultApi = (
 }
 
 // get table tracker data
-export const getTrackerDataApi = (offset, limit, type, onSuccess, onError, onStart) => {
+export const getTrackerDataApi = ({
+  offset = '',
+  limit = '',
+  type = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getTableTrackerDataApi(offset, limit, type),
@@ -551,16 +707,16 @@ export const setBadgesApi = (type, onSuccess, onError, onStart) => {
 }
 
 // set payment request
-export const setPaymentApi = (
-  payment_type,
-  payment_address,
-  payment_amount,
-  coin_used,
-  details,
-  onSuccess,
-  onError,
-  onStart
-) => {
+export const setPaymentApi = ({
+  payment_type = '',
+  payment_address = '',
+  payment_amount = '',
+  coin_used = '',
+  details = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setPaymentRequestApi(payment_type, payment_address, payment_amount, coin_used, details),
@@ -573,7 +729,13 @@ export const setPaymentApi = (
 }
 
 // get payment request
-export const getPaymentApi = (offset, limit, onSuccess, onError, onStart) => {
+export const getPaymentApi = ({
+  offset = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getPaymentRequestApi(offset, limit),
@@ -586,7 +748,7 @@ export const getPaymentApi = (offset, limit, onSuccess, onError, onStart) => {
 }
 
 // get user coins
-export const getusercoinsApi = (onSuccess, onError, onStart) => {
+export const getusercoinsApi = ({ onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
   store.dispatch(
     apiCallBegan({
       ...getUserCoinsApi(),
@@ -599,7 +761,15 @@ export const getusercoinsApi = (onSuccess, onError, onStart) => {
 }
 
 // set battle statictics
-export const setbattlestaticticsApi = (user_id1, user_id2, winner_id, is_drawn, onSuccess, onError, onStart) => {
+export const setbattlestaticticsApi = ({
+  user_id1 = '',
+  user_id2 = '',
+  winner_id = '',
+  is_drawn = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...setBattleStaticticsApi(user_id1, user_id2, winner_id, is_drawn),
@@ -612,7 +782,15 @@ export const setbattlestaticticsApi = (user_id1, user_id2, winner_id, is_drawn, 
 }
 
 // get battle statictics
-export const getbattlestaticticsApi = (sort, order, offset, limit, onSuccess, onError, onStart) => {
+export const getbattlestaticticsApi = ({
+  sort = '',
+  order = '',
+  offset = '',
+  limit = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
       ...getBattleStaticticsApi(sort, order, offset, limit),
@@ -625,10 +803,15 @@ export const getbattlestaticticsApi = (sort, order, offset, limit, onSuccess, on
 }
 
 // unlock premium categories
-export const unlockpremiumcateApi = (cat_id, subcat_id, onSuccess, onError, onStart) => {
+export const unlockpremiumcateApi = ({
+  cat_id = '',
+  onSuccess = () => {},
+  onError = () => {},
+  onStart = () => {}
+}) => {
   store.dispatch(
     apiCallBegan({
-      ...unlockPremiumCategoriesApi(cat_id, subcat_id),
+      ...unlockPremiumCategoriesApi(cat_id),
       displayToast: false,
       onStart,
       onSuccess,
@@ -660,19 +843,6 @@ export const deletependingPayemntApi = ({
   store.dispatch(
     apiCallBegan({
       ...deletePendingPayemntApi(payment_id),
-      displayToast: false,
-      onStart,
-      onSuccess,
-      onError
-    })
-  )
-}
-
-// get home web settings
-export const gethomeWebSettingsApi = ({ onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
-  store.dispatch(
-    apiCallBegan({
-      ...getHomeWebSettingsApi(),
       displayToast: false,
       onStart,
       onSuccess,

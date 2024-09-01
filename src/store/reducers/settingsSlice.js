@@ -9,7 +9,7 @@ const initialState = {
   data: null,
   loading: false,
   lastFetch: null,
-  syslastFetch:null,
+  syslastFetch: null,
   systemConfig: {} //immutable data
 }
 
@@ -34,53 +34,107 @@ export const settingsSlice = createSlice({
       settings.systemConfig = data
       settings.loading = false
       settings.syslastFetch = Date.now()
+    },
+    clearReloadFlag: () => {
+      sessionStorage.removeItem('firstLoad_Settings')
     }
   }
 })
 
-export const { settingsRequested, settingsSucess, settingsFailure, settingsConfigurationSucess } = settingsSlice.actions
+export const { settingsRequested, settingsSucess, settingsFailure, settingsConfigurationSucess, clearReloadFlag } =
+  settingsSlice.actions
 export default settingsSlice.reducer
 
 // API Callls
-export const settingsLoaded = (type, onSuccess, onError, onStart) => {
-  const state = store.getState()
-  const { lastFetch } = state.Settings
+export const settingsLoaded = ({ type = '', onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
+  const { lastFetch } = store.getState().Settings
   const diffInMinutes = moment().diff(moment(lastFetch), 'minutes')
+  const firstLoad = sessionStorage.getItem('firstLoad_Settings')
+  const manualRefresh = sessionStorage.getItem('manualRefresh_Settings')
+  // If API data is fetched within last 10 minutes then don't call the API again
+  const shouldFetchData = !firstLoad || manualRefresh === 'true'
+  if (shouldFetchData) {
+    store.dispatch(
+      apiCallBegan({
+        ...getSettingsApi(type),
+        displayToast: false,
+        onStartDispatch: settingsRequested.type,
+        onSuccessDispatch: settingsSucess.type,
+        onErrorDispatch: settingsFailure.type,
+        onStart,
+        onSuccess: res => {
+          sessionStorage.setItem('lastFetch_Settings', Date.now())
+        },
+        onError
+      })
+    )
+    // Clear manualRefresh flag
+    sessionStorage.removeItem('manualRefresh_Settings')
 
-  if (diffInMinutes < 10) return false
-
-  store.dispatch(
-    apiCallBegan({
-      ...getSettingsApi(type),
-      displayToast: false,
-      onStartDispatch: settingsRequested.type,
-      onSuccessDispatch: settingsSucess.type,
-      onErrorDispatch: settingsFailure.type,
-      onStart,
-      onSuccess,
-      onError
-    })
-  )
+    // Set firstLoad flag to prevent subsequent calls
+    sessionStorage.setItem('firstLoad_Settings', 'true')
+  } else {
+    onSuccess(store.getState().Settings) // Invoke onSuccess with the existing data
+  }
 }
 
-export const systemconfigApi = (onSuccess, onError, onStart) => {
-  const state = store.getState()
-  const { syslastFetch } = state.Settings
-  const diffInMinutes = moment().diff(moment(syslastFetch), 'minutes')
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    sessionStorage.setItem('manualRefresh_Settings', 'true')
+  })
 
-  // If API data is fetched within last 10 minutes then don't call the API again
-  if (diffInMinutes < 10) return false
+  window.addEventListener('load', () => {
+    // Check if this is a manual refresh by checking if lastFetch is set
+    if (!sessionStorage.getItem('lastFetch_Settings')) {
+      sessionStorage.setItem('manualRefresh_Settings', 'true')
+    }
+  })
+}
 
-  store.dispatch(
-    apiCallBegan({
-      ...getSystemConfigurationsApi(),
-      displayToast: false,
-      onSuccessDispatch: settingsConfigurationSucess.type,
-      onStart,
-      onSuccess,
-      onError
-    })
-  )
+export const systemconfigApi = ({ onSuccess = () => {}, onError = () => {}, onStart = () => {} }) => {
+  const firstLoad = sessionStorage.getItem('firstLoad_Settings_Config')
+  const manualRefresh = sessionStorage.getItem('manualRefresh_Settings_Config')
+
+  // Check if the data needs to be fetched
+  const shouldFetchData = !firstLoad || manualRefresh === 'true'
+  if (shouldFetchData) {
+    store.dispatch(
+      apiCallBegan({
+        ...getSystemConfigurationsApi(),
+        displayToast: false,
+        onSuccessDispatch: settingsConfigurationSucess.type,
+        onStart,
+        onSuccess: res => {
+          // onSuccess(res)
+          sessionStorage.setItem('lastFetch_Settings_Config', Date.now())
+        },
+        onError: error => {
+          onError(error)
+        }
+      })
+    )
+    // Clear manualRefresh flag
+    sessionStorage.removeItem('manualRefresh_Settings_Config')
+
+    // Set firstLoad flag to prevent subsequent calls
+    sessionStorage.setItem('firstLoad_Settings_Config', 'true')
+  } else {
+    onSuccess(store.getState().Settings) // Invoke onSuccess with the existing data
+  }
+}
+
+// Event listener to set manualRefresh flag when page is manually refreshed
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    sessionStorage.setItem('manualRefresh_Settings_Config', 'true')
+  })
+
+  window.addEventListener('load', () => {
+    // Check if this is a manual refresh by checking if lastFetch is set
+    if (!sessionStorage.getItem('lastFetch_Settings_Config')) {
+      sessionStorage.setItem('manualRefresh_Settings_Config', 'true')
+    }
+  })
 }
 
 // selectors

@@ -1,17 +1,18 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { withTranslation } from "react-i18next";
 import Timer from "src/components/Common/Timer";
 import { Modal, Button } from "antd";
-import { decryptAnswer, imgError } from "src/utils";
+import { decryptAnswer } from "src/utils";
 import { FaArrowsAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { sysConfigdata } from "src/store/reducers/settingsSlice";
 import { RiArrowLeftDoubleLine, RiArrowRightDoubleLine } from "react-icons/ri";
-import Bookmark from "src/components/Common/Bookmark";
-import { setbookmarkApi } from 'src/store/actions/campaign'
 import { LoadQuizZoneCompletedata, percentageSuccess, questionsDataSuceess, resultTempDataSuccess } from "src/store/reducers/tempDataSlice";
 import { useRouter } from "next/router";
+import QuestionTopSection from "src/components/view/common/QuestionTopSection";
+import QuestionMiddleSectionOptions from "src/components/view/common/QuestionMiddleSectionOptions";
+import { setSecondSnap, setTotalSecond } from "src/store/reducers/showRemainingSeconds";
 
 
 function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick, showBookmark }) {
@@ -32,7 +33,6 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
     const dispatch = useDispatch()
 
     const navigate = useRouter()
-
 
     // store data get
     const userData = useSelector((state) => state.User);
@@ -71,6 +71,12 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
     };
 
     const onSubmit = async () => {
+        let seconds = child.current.getMinuteandSeconds()
+
+        dispatch(setTotalSecond(timerSeconds))
+        dispatch(setSecondSnap(seconds))
+
+
         // let result_score = Score.current;
         let result_score = score;
         update_questions.map((data) => {
@@ -90,19 +96,21 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
         onOptionClick(questions, result_score);
 
         await onQuestionEnd()
-        
+
     };
+
+
 
     const onQuestionEnd = async () => {
         const tempData = {
-          totalQuestions: update_questions?.length,
-          showQuestions: true,
-          reviewAnswer: false,
+            totalQuestions: update_questions?.length,
+            showQuestions: true,
+            reviewAnswer: false,
         };
         // Dispatch the action with the data
         dispatch(resultTempDataSuccess(tempData));
         await navigate.push("/self-learning/result")
-      }
+    }
 
     const onTimerExpire = () => {
         onSubmit();
@@ -141,181 +149,23 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
         setCurrentQuestion(index);
     };
 
-    const handleBookmarkClick = (question_id, isBookmarked) => {
-        let type = 1
-        let bookmark = '0'
-
-        if (isBookmarked) bookmark = '1'
-        else bookmark = '0'
-
-        return setbookmarkApi(
-            question_id,
-            bookmark,
-            type,
-            response => {
-                if (response.error) {
-                    toast.error(t('Cannot Remove Question from Bookmark'))
-                    return false
-                } else {
-                    if (isBookmarked) {
-                        getAndUpdateBookmarkData(type)
-                    } else {
-                        deleteBookmarkByQuestionID(question_id)
-                    }
-                    return true
-                }
-            },
-            error => {
-                console.error(error)
-            }
-        )
-    }
 
 
     return (
         <React.Fragment>
             <div className='dashboardPlayUppDiv funLearnQuestionsUpperDiv selfLearnQuestionsUpperDiv text-end p-2 pb-0'>
-                <div className="leftSec">
-                    <div className="coins">
-                        <span>{t("Coins")} : {userData?.data?.coins}</span>
-                    </div>
-
-                    {/* <div className="rightWrongAnsDiv">
-                        <span className='rightAns'>
-                            <img src={rightTickIcon.src} alt="" />{corrAns}
-                        </span>
-
-                        <span className='wrongAns'>
-                            <img src={crossIcon.src} alt="" />{inCorrAns}</span>
-                    </div> */}
-                </div>
-
-                <div className="rightSec">
-                    <div className="rightWrongAnsDiv correctIncorrect">
-                        <span className='rightAns'>
-                            {currentQuestion + 1} - {questions?.length}</span>
-                    </div>
-                    <div className="p-2 pb-0">
-                        {showBookmark ? (
-                            <Bookmark
-                                id={questions[currentQuestion].id}
-                                isBookmarked={questions[currentQuestion].isBookmarked ? questions[currentQuestion].isBookmarked : false}
-                                onClick={handleBookmarkClick}
-                            />
-                        ) : (
-                            ''
-                        )}
-                    </div>
-                </div>
+                <QuestionTopSection currentQuestion={currentQuestion} questions={questions} showAnswers={false} />
             </div>
 
             <div className="questions selflearnigque" ref={scroll}>
                 <div className="timerWrapper">
-                    <div className="inner__headerdash">
+                    <div className="inner__headerdash ">
                         {questions && questions[0]["id"] !== "" ? <Timer ref={child} timerSeconds={timerSeconds} onTimerExpire={onTimerExpire} /> : ""}
                     </div>
                 </div>
 
 
-                <div className="content__text">
-                    <p className="question-text pt-4">{questions[currentQuestion].question}</p>
-                </div>
-
-                {questions[currentQuestion].image ? (
-                    <div className="imagedash">
-                        <img src={questions[currentQuestion].image} onError={imgError} alt="" />
-                    </div>
-                ) : (
-                    ""
-                )}
-
-                {/* {/ options /} */}
-                <div className="row optionsWrapper">
-                    {questions[currentQuestion].optiona ? (
-                        <div className="col-md-6 col-12">
-                            <div className="inner__questions">
-                                <button className={`btn button__ui w-100 ${setAnswerStatusClass("a")}`} onClick={(e) => handleAnswerOptionClick("a")}>
-                                    <div className="row">
-                                        <div className="col">{questions[currentQuestion].optiona}</div>
-                                        {questions[currentQuestion].probability_a ? <div className="col text-end">{questions[currentQuestion].probability_a}</div> : ""}
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        ""
-                    )}
-                    {questions[currentQuestion].optionb ? (
-                        <div className="col-md-6 col-12">
-                            <div className="inner__questions">
-                                <button className={`btn button__ui w-100 ${setAnswerStatusClass("b")}`} onClick={(e) => handleAnswerOptionClick("b")}>
-                                    <div className="row">
-                                        <div className="col">{questions[currentQuestion].optionb}</div>
-                                        {questions[currentQuestion].probability_b ? <div className="col text-end">{questions[currentQuestion].probability_b}</div> : ""}
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        ""
-                    )}
-                    {questions[currentQuestion].question_type === "1" ? (
-                        <>
-                            {questions[currentQuestion].optionc ? (
-                                <div className="col-md-6 col-12">
-                                    <div className="inner__questions">
-                                        <button className={`btn button__ui w-100 ${setAnswerStatusClass("c")}`} onClick={(e) => handleAnswerOptionClick("c")}>
-                                            <div className="row">
-                                                <div className="col">{questions[currentQuestion].optionc}</div>
-                                                {questions[currentQuestion].probability_c ? <div className="col text-end">{questions[currentQuestion].probability_c}</div> : ""}
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                ""
-                            )}
-                            {questions[currentQuestion].optiond ? (
-                                <div className="col-md-6 col-12">
-                                    <div className="inner__questions">
-                                        <button className={`btn button__ui w-100 ${setAnswerStatusClass("d")}`} onClick={(e) => handleAnswerOptionClick("d")}>
-                                            <div className="row">
-                                                <div className="col">{questions[currentQuestion].optiond}</div>
-                                                {questions[currentQuestion].probability_d ? <div className="col text-end">{questions[currentQuestion].probability_d}</div> : ""}
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                ""
-                            )}
-                            {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
-                                <div className="row d-flex justify-content-center mob_resp_e">
-                                    <div className="col-md-6 col-12">
-                                        <div className="inner__questions">
-                                            <button className={`btn button__ui w-100 ${setAnswerStatusClass("e")}`} onClick={(e) => handleAnswerOptionClick("e")}>
-                                                <div className="row">
-                                                    <div className="col">{questions[currentQuestion].optione}</div>
-                                                    {questions[currentQuestion].probability_e ? (
-                                                        <div className="col" style={{ textAlign: "right" }}>
-                                                            {questions[currentQuestion].probability_e}
-                                                        </div>
-                                                    ) : (
-                                                        ""
-                                                    )}
-                                                </div>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                ""
-                            )}
-                        </>
-                    ) : (
-                        ""
-                    )}
-                </div>
+                <QuestionMiddleSectionOptions questions={questions} currentQuestion={currentQuestion} setAnswerStatusClass={setAnswerStatusClass} handleAnswerOptionClick={handleAnswerOptionClick} probability={false} latex={true} />
 
                 <div className='divider'>
                     <hr style={{ width: '112%', backgroundColor: 'gray', height: '2px' }} />
@@ -326,17 +176,20 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
                         <button className="btn btn-primary" onClick={previousQuestion} disabled={disablePrev}>
                             {/* <span className='lifelineText'>{t("Previous Question")}</span> */}
                             <span className='lifelineIcon'> <RiArrowLeftDoubleLine size={25} /></span>
+                            <span className='lifelineHoverIcon'>{t("previous_question")}</span>
                         </button>
                     </div>
                     {/* {/ pagination /} */}
 
                     <div className="notification self-learning-pagination">
                         <Button className="notify_btn btn-primary" onClick={() => setNotificationModal(true)}>
-                            {/* <span className='lifelineText'>{t("View Question Dashboard")}</span> */}
+                            {/* <span className='lifelineText'>{t("view_question_dashboard")}</span> */}
                             <span className='lifelineIcon'> <FaArrowsAlt /></span>
+                            <span className='lifelineHoverIcon'>{t("view_question_dashboard")}</span>
                         </Button>
 
-                        <Modal centered visible={notificationmodal} onOk={() => setNotificationModal(false)} onCancel={() => setNotificationModal(false)} footer={null} className="custom_modal_notify self-modal">
+                        <Modal centered open={notificationmodal} onOk={() => setNotificationModal(false)} onCancel={() => setNotificationModal(false)} footer={null} className="custom_modal_notify self-modal">
+                            <h4 className="self_learn_attempt_question_popup">{t("q_att")}</h4>
                             <div className={`que_pagination ${questions?.length > 50 ? 'questions-scrollbar' : ''}`}>
                                 {questions?.map((que_data, index) => {
                                     return (
@@ -357,11 +210,10 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
                                 </div> */}
                             </div>
                             <hr />
-                            <p>{t("Color Code")}</p>
                             {/* {/ check and unchecked /} */}
-                            <div className="custom_checkbox d-flex flex-wrap align-items-center">
-                                <input type="radio" name="" className="tick me-2" checked readOnly /> {t("Attended Question")}
-                                <input type="radio" name="" className="untick ms-3 me-2" disabled readOnly /> {t("Un-Attempted")}
+                            <div className="self_learn_attempt_question_popup_checkbox">
+                                <div className="d-flex"> <input type="radio" name="" className="tick me-2" checked readOnly /> <h5>{t('att')}</h5></div>
+                                <div className="d-flex"><input type="radio" name="" className="untick ms-3 me-2" disabled readOnly /> <h5>{t('un_att')}</h5></div>
                             </div>
                         </Modal>
                     </div>
@@ -369,12 +221,13 @@ function SelfLearningQuestions({ t, questions: data, timerSeconds, onOptionClick
                         <button className="btn btn-primary" onClick={nextQuestion} disabled={disableNext}>
                             {/* <span className='lifelineText'>{t("Next Question")}</span> */}
                             <span className='lifelineIcon'> <RiArrowRightDoubleLine size={25} /></span>
+                            <span className='lifelineHoverIcon'>{`${t('next')} ${t('questions')} `}</span>
                         </button>
                     </div>
 
                     <div className="resettimer">
                         <button className="btn btn-primary" onClick={onSubmit}>
-                            {t("Submit")}
+                            {t("submit")}
                         </button>
                     </div>
 

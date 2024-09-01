@@ -10,15 +10,15 @@ import { updateUserDataInfo } from 'src/store/reducers/userSlice'
 import { groupbattledata, LoadGroupBattleData } from 'src/store/reducers/groupbattleSlice'
 import toast from 'react-hot-toast'
 import { badgesData, LoadNewBadgesData } from 'src/store/reducers/badgesSlice'
-import FirebaseData from 'src/utils/Firebase'
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 import { useRouter } from 'next/router'
 import rightTickIcon from 'src/assets/images/check-circle-score-screen.svg'
-import Bookmark from "src/components/Common/Bookmark";
 import { percentageSuccess, questionsDataSuceess } from 'src/store/reducers/tempDataSlice';
 import { t } from 'i18next';
-
+import QuestionTopSection from 'src/components/view/common/QuestionTopSection';
+import QuestionMiddleSectionOptions from 'src/components/view/common/QuestionMiddleSectionOptions';
+import { getFirestore, collection, doc, onSnapshot, getDocs, query, serverTimestamp, addDoc, updateDoc, deleteDoc, where, runTransaction, getDoc } from 'firebase/firestore';
 
 const MySwal = withReactContent(Swal)
 
@@ -41,7 +41,7 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
 
   const scroll = useRef(null)
 
-  const { db } = FirebaseData()
+  const db = getFirestore();
 
   // store data get
   const userData = useSelector(state => state.User)
@@ -69,18 +69,21 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
   const addAnsweredQuestion = item => {
     setAnsweredQuestions({ ...answeredQuestions, [item]: true })
   }
+  useEffect(() => {
 
+  }, [questions])
   //firestore adding answer in doc
   let battleRoomDocumentId = groupBattledata.roomID
 
   // delete battle room
   const deleteBattleRoom = async documentId => {
     try {
-      await db.collection('battleRoom').doc(documentId).delete()
+      await deleteDoc(doc(db, "battleRoom", documentId));
     } catch (error) {
-      toast.error(error)
+      toast.error(error);
     }
-  }
+  };
+
 
   // combat winner
   const combatWinner = () => {
@@ -93,26 +96,24 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
             LoadNewBadgesData('combat_winner', '1')
             toast.success(t(res?.data?.notification_body))
             const status = 0
-            UserCoinScoreApi(
-              combat_winner_coin,
-              null,
-              null,
-              t('combat badge reward'),
-              status,
-              response => {
-                getusercoinsApi(
-                  responseData => {
+            UserCoinScoreApi({
+              coins: combat_winner_coin,
+              title: t('combat_badge_reward'),
+              status: status,
+              onSuccess: response => {
+                getusercoinsApi({
+                  onSuccess: responseData => {
                     updateUserDataInfo(responseData.data)
                   },
-                  error => {
+                  onError: error => {
                     console.log(error)
                   }
-                )
+                })
               },
-              error => {
+              onError: error => {
                 console.log(error)
               }
-            )
+            })
           },
           error => {
             console.log(error)
@@ -128,26 +129,24 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
             LoadNewBadgesData('combat_winner', '1')
             toast.success(t(res?.data?.notification_body))
             const status = 0
-            UserCoinScoreApi(
-              combat_winner_coin,
-              null,
-              null,
-              t('combat badge reward'),
-              status,
-              response => {
-                getusercoinsApi(
-                  responseData => {
+            UserCoinScoreApi({
+              coins: combat_winner_coin,
+              title: t('combat_badge_reward'),
+              status: status,
+              onSuccess: response => {
+                getusercoinsApi({
+                  onSuccess: responseData => {
                     updateUserDataInfo(responseData.data)
                   },
-                  error => {
+                  onError: error => {
                     console.log(error)
                   }
-                )
+                })
               },
-              error => {
+              onError: error => {
                 console.log(error)
               }
-            )
+            })
           },
           error => {
             console.log(error)
@@ -169,26 +168,24 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
           LoadNewBadgesData('ultimate_player', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            ultimate_player_coin,
-            null,
-            null,
-            t('ultimate badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: ultimate_player_coin,
+            title: t('ultimate_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -208,16 +205,16 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
       let userScore = null
       let result_score = Score.current
       let percentage = (100 * result_score) / questions?.length
-      UserStatisticsApi(
-        questions?.length,
-        result_score,
-        questions[currentQuestion].category,
-        percentage,
-        response => { },
-        error => {
+      UserStatisticsApi({
+        questions_answered: questions?.length,
+        correct_answers: result_score,
+        category_id: questions[currentQuestion].category,
+        percentage: percentage,
+        onSuccess: response => { },
+        onError: error => {
           console.log(error)
         }
-      )
+      })
 
       userScore = await calculateScore(result_score, questions?.length, systemconfig?.battle_mode_random_correct_answer_credit_score, systemconfig?.battle_mode_random_wrong_answer_deduct_score)
       await onQuestionEnd(coins, userScore)
@@ -229,6 +226,8 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
 
   // button option answer check
   const handleAnswerOptionClick = async selected_option => {
+
+
     if (!answeredQuestions.hasOwnProperty(currentQuestion)) {
       addAnsweredQuestion(currentQuestion)
 
@@ -242,13 +241,13 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
         result_score++
         Score.current = result_score
       }
-       
+
       // this for only audio
       const currentIndex = currentQuestion;
 
       const currentQuestionq = questions[currentIndex];
 
-      audioPlay(selected_option,currentQuestionq.answer)
+      audioPlay(selected_option, currentQuestionq.answer)
 
       let update_questions = questions.map(data => {
         return data.id === id ? { ...data, selected_answer: selected_option, isAnswered: true } : data
@@ -276,7 +275,7 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
       options.push('a', 'b', 'c', 'd')
     } else if (question_type === '2') {
       options.push('a', 'b')
-    } else if (systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione) {
+    } else if (questions[currentQuestion].optione !== "") {
       options.push('a', 'b', 'c', 'd', 'e')
     }
 
@@ -286,77 +285,74 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
   }
 
   // robot submitAnser
-  const robotsubmitAnswer = selected_option => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const robotsubmitAnswer = async selected_option => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const docSnap = await getDoc(documentRef);
 
-          let user2ans = battleroom.user2.answers
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          // answer push
-          user2ans.push(selected_option)
+      let battleroom = docSnap.data();
 
-          db.collection('battleRoom').doc(battleRoomDocumentId).update({
-            'user2.answers': user2ans
-          })
+      let user2ans = battleroom.user2.answers;
 
-          // // anseerCheck
-          answercheckSnapshot()
+      // Push the selected option to the answers array
+      user2ans.push(selected_option);
 
-          // point
-          checkRobotpoints(selected_option)
+      // Update the document with the new answers array
+      await updateDoc(documentRef, {
+        'user2.answers': user2ans
+      });
 
-          // check correct answer
-          checkRobotCorrectAnswers(selected_option)
-        }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+      // Call other functions after successfully updating the document
+      answercheckSnapshot();
+      checkRobotpoints(selected_option);
+      checkRobotCorrectAnswers(selected_option);
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+    }
   }
 
   // point check
-  const checkRobotCorrectAnswers = option => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const checkRobotCorrectAnswers = async option => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const docSnap = await getDoc(documentRef);
 
-          let user2name = battleroom.user2.name
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          let user2image = battleroom.user2.profileUrl
+      let battleroom = docSnap.data();
 
-          let user2correct = battleroom.user2.correctAnswers
+      let user2name = battleroom.user2.name;
+      let user2image = battleroom.user2.profileUrl;
+      let user2correct = battleroom.user2.correctAnswers;
+      let user2uid = battleroom.user2.uid;
 
-          let user2uid = battleroom.user2.uid
+      // Store data in local storage to get in result screen
+      LoadGroupBattleData('user2name', user2name);
+      LoadGroupBattleData('user2image', user2image);
+      LoadGroupBattleData('user2uid', user2uid);
 
-          // store data in local storage to get in result screen
-          LoadGroupBattleData('user2name', user2name)
-          LoadGroupBattleData('user2image', user2image)
-          LoadGroupBattleData('user2uid', user2uid)
-
-          let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-          if (decryptedAnswer === option) {
-            // correctanswer push
-            db.collection('battleRoom')
-              .doc(battleRoomDocumentId)
-              .update({
-                'user2.correctAnswers': user2correct + 1
-              })
-          }
-        }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+      let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id);
+      if (decryptedAnswer === option) {
+        // Correct answer push
+        await updateDoc(documentRef, {
+          'user2.correctAnswers': user2correct + 1
+        });
+      }
+    } catch (error) {
+      console.error("Error checking robot correct answers:", error);
+    }
   }
+
 
   // storing dataa of points in localstorage
   const localStorageData = (user1name, user2name, user1uid, user2uid, user1image, user2image) => {
@@ -374,225 +370,170 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
   }
 
   // submit answer
-  const submitAnswer = selected_option => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const submitAnswer = async selected_option => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const docSnap = await getDoc(documentRef);
 
-          let user1ans = battleroom.user1.answers
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          let user2ans = battleroom.user2.answers
+      let battleroom = docSnap.data();
 
-          // answer update in document
-          if (userData?.data?.id === battleroom.user1.uid) {
-            // answer push
-            user1ans.push(selected_option)
+      let user1ans = battleroom.user1.answers;
+      let user2ans = battleroom.user2.answers;
 
-            db.collection('battleRoom').doc(battleRoomDocumentId).update({
-              'user1.answers': user1ans
-            })
-            if (playwithrobot) {
-              autoRobotClick()
-            }
-          } else {
-            // answer push
-            user2ans.push(selected_option)
+      // Answer update in document
+      if (userData?.data?.id === battleroom.user1.uid) {
+        // Answer push
+        user1ans.push(selected_option);
 
-            db.collection('battleRoom').doc(battleRoomDocumentId).update({
-              'user2.answers': user2ans
-            })
-          }
-
-          // anseerCheck
-          answercheckSnapshot()
-
-          // point
-          checkpoints(selected_option)
-
-          // check correct answer
-          checkCorrectAnswers(selected_option)
+        await updateDoc(documentRef, {
+          'user1.answers': user1ans
+        });
+        if (playwithrobot) {
+          autoRobotClick();
         }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+      } else {
+        // Answer push
+        user2ans.push(selected_option);
+
+        await updateDoc(documentRef, {
+          'user2.answers': user2ans
+        });
+      }
+
+      // Answer check
+      answercheckSnapshot();
+
+      // Points
+      checkpoints(selected_option);
+
+      // Check correct answer
+      checkCorrectAnswers(selected_option);
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+    }
   }
+
 
   // point check
-  const checkRobotpoints = option => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const checkRobotpoints = async option => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const docSnap = await getDoc(documentRef);
 
-          let totalseconds = timerSeconds
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          let seconds = user1timer.current.getTimerSeconds()
+      let battleroom = docSnap.data();
 
-          let finalScore = totalseconds - seconds
+      let totalseconds = timerSeconds;
+      let seconds = user1timer.current.getTimerSeconds();
+      let finalScore = totalseconds - seconds;
 
-          let user2name = battleroom.user2.name
+      let user2name = battleroom.user2.name;
+      let user2point = battleroom.user2.points;
+      let user2uid = battleroom.user2.uid;
+      let user2image = battleroom.user2.profileUrl;
 
-          let user2point = battleroom.user2.points
+      LoadGroupBattleData('user2name', user2name);
+      LoadGroupBattleData('user2image', user2image);
+      LoadGroupBattleData('user2uid', user2uid);
+      LoadGroupBattleData('user2point', user2point);
 
-          let user2uid = battleroom.user2.uid
+      let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id);
 
-          let user2image = battleroom.user2.profileUrl
-
-          LoadGroupBattleData('user2name', user2name)
-
-          LoadGroupBattleData('user2image', user2image)
-
-          LoadGroupBattleData('user2uid', user2uid)
-
-          LoadGroupBattleData('user2point', user2point)
-
-          let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-
-          if (decryptedAnswer === option) {
-            // point push
-            if (finalScore < 2) {
-              let totalpush = Number(systemconfig?.battle_mode_random_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-              db.collection('battleRoom')
-                .doc(battleRoomDocumentId)
-                .update({
-                  'user2.points': totalpush + user2point
-                })
-            } else if (finalScore === 3 || finalScore === 4) {
-              let totalpush = Number(systemconfig?.battle_mode_random_second_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-              db.collection('battleRoom')
-                .doc(battleRoomDocumentId)
-                .update({
-                  'user2.points': totalpush + user2point
-                })
-            } else {
-              let totalpush = Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-              db.collection('battleRoom')
-                .doc(battleRoomDocumentId)
-                .update({
-                  'user2.points': totalpush + user2point
-                })
-            }
-          }
+      if (decryptedAnswer === option) {
+        // Point push
+        let totalpush;
+        if (finalScore < 2) {
+          totalpush = Number(systemconfig?.battle_mode_random_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score);
+        } else if (finalScore === 3 || finalScore === 4) {
+          totalpush = Number(systemconfig?.battle_mode_random_second_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score);
+        } else {
+          totalpush = Number(systemconfig?.battle_mode_random_correct_answer_credit_score);
         }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+
+        await updateDoc(documentRef, {
+          'user2.points': totalpush + user2point
+        });
+      }
+    } catch (error) {
+      console.error("Error checking robot points:", error);
+    }
   }
+
 
   // point check
-  const checkpoints = option => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+  const checkpoints = async option => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-          let totalseconds = timerSeconds
+      const docSnap = await getDoc(documentRef);
 
-          let seconds = user1timer.current.getTimerSeconds()
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          let finalScore = totalseconds - seconds
+      let battleroom = docSnap.data();
 
-          let user1name = battleroom.user1.name
+      let totalseconds = timerSeconds;
+      let seconds = 0;
 
-          let user2name = battleroom.user2.name
+      if (user1timer.current !== null) {
+        seconds = user1timer.current.getTimerSeconds();
+      }
 
-          let user1point = battleroom.user1.points
+      let finalScore = totalseconds - seconds;
 
-          let user2point = battleroom.user2.points
+      let user1name = battleroom.user1.name;
+      let user2name = battleroom.user2.name;
+      let user1point = battleroom.user1.points;
+      let user2point = battleroom.user2.points;
+      let user1uid = battleroom.user1.uid;
+      let user2uid = battleroom.user2.uid;
+      let user1image = battleroom.user1.profileUrl;
+      let user2image = battleroom.user2.profileUrl;
 
-          let user1uid = battleroom.user1.uid
+      // Store data in local storage to get in result screen
+      localStorageData(user1name, user2name, user1uid, user2uid, user1image, user2image);
 
-          let user2uid = battleroom.user2.uid
-
-          let user1image = battleroom.user1.profileUrl
-
-          let user2image = battleroom.user2.profileUrl
-
-          // store data in local storage to get in result screen
-          localStorageData(user1name, user2name, user1uid, user2uid, user1image, user2image)
-
-          if (userData?.data?.id === battleroom.user1.uid) {
-            let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-            if (decryptedAnswer === option) {
-              // point push
-              if (finalScore < 2) {
-                let totalpush = Number(systemconfig?.battle_mode_random_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-                db.collection('battleRoom')
-                  .doc(battleRoomDocumentId)
-                  .update({
-                    'user1.points': totalpush + user1point
-                  })
-              } else if (finalScore === 3 || finalScore === 4) {
-                let totalpush = Number(systemconfig?.battle_mode_random_second_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-                db.collection('battleRoom')
-                  .doc(battleRoomDocumentId)
-                  .update({
-                    'user1.points': totalpush + user1point
-                  })
-              } else {
-                let totalpush = Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-                db.collection('battleRoom')
-                  .doc(battleRoomDocumentId)
-                  .update({
-                    'user1.points': totalpush + user1point
-                  })
-              }
-            }
-          } else {
-            let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-            if (decryptedAnswer === option) {
-              // point push
-              if (finalScore < 2) {
-                let totalpush = Number(systemconfig?.battle_mode_random_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-                db.collection('battleRoom')
-                  .doc(battleRoomDocumentId)
-                  .update({
-                    'user2.points': totalpush + user2point
-                  })
-              } else if (finalScore === 3 || finalScore === 4) {
-                let totalpush = Number(systemconfig?.battle_mode_random_second_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-                db.collection('battleRoom')
-                  .doc(battleRoomDocumentId)
-                  .update({
-                    'user2.points': totalpush + user2point
-                  })
-              } else {
-                let totalpush = Number(systemconfig?.battle_mode_random_correct_answer_credit_score)
-
-                db.collection('battleRoom')
-                  .doc(battleRoomDocumentId)
-                  .update({
-                    'user2.points': totalpush + user2point
-                  })
-              }
-            }
-          }
+      let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id);
+      if (decryptedAnswer === option) {
+        // Point push logic remains the same
+        let totalpush;
+        if (finalScore < 2) {
+          totalpush = Number(systemconfig?.battle_mode_random_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score);
+        } else if (finalScore === 3 || finalScore === 4) {
+          totalpush = Number(systemconfig?.battle_mode_random_second_quickest_correct_answer_extra_score) + Number(systemconfig?.battle_mode_random_correct_answer_credit_score);
+        } else {
+          totalpush = Number(systemconfig?.battle_mode_random_correct_answer_credit_score);
         }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+
+        if (userData?.data?.id === battleroom.user1.uid) {
+          await updateDoc(documentRef, {
+            'user1.points': totalpush + user1point
+          });
+        } else {
+          await updateDoc(documentRef, {
+            'user2.points': totalpush + user2point
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error checking checkpoints:", error);
+    }
   }
+
 
   // option answer status check
   const setAnswerStatusClass = option => {
@@ -603,175 +544,159 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
   }
 
   // on timer expire
-  const onTimerExpire = () => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const onTimerExpire = async () => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const docSnap = await getDoc(documentRef);
 
-          let user1ans = battleroom.user1.answers
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          let user2ans = battleroom.user2.answers
+      let battleroom = docSnap.data();
 
-          let playwithRobot = battleroom.playwithRobot
+      let user1ans = battleroom.user1.answers;
+      let user2ans = battleroom.user2.answers;
+      let playwithRobot = battleroom.playwithRobot;
 
-          if (userData?.data?.id === battleroom.user1.uid) {
-            user1ans.push(-1)
+      if (userData?.data?.id === battleroom.user1.uid) {
+        user1ans.push(-1);
 
-            db.collection('battleRoom').doc(battleRoomDocumentId).update({
-              'user1.answers': user1ans
-            })
-          } else {
-            user2ans.push(-1)
-            db.collection('battleRoom').doc(battleRoomDocumentId).update({
-              'user2.answers': user2ans
-            })
-          }
+        await updateDoc(documentRef, {
+          'user1.answers': user1ans
+        });
+      } else {
+        user2ans.push(-1);
+        await updateDoc(documentRef, {
+          'user2.answers': user2ans
+        });
+      }
 
-          // ontime expire submit answer
-          if (playwithRobot) {
-            autoRobotClick()
-          }
+      // On time expire submit answer
+      if (playwithRobot) {
+        autoRobotClick();
+      }
 
-          // anseerCheck
-          answercheckSnapshot()
-        }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+      // Answer check
+      answercheckSnapshot();
+    } catch (error) {
+      console.error("Error on timer expire:", error);
+    }
   }
+
 
   // answercheck snapshot
   const answercheckSnapshot = () => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+    const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef.onSnapshot(
-      doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+    onSnapshot(documentRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        let battleroom = docSnapshot.data();
 
-          let useroneAnswerLength = battleroom.user1.answers?.length
+        let userOneAnswerLength = battleroom.user1.answers?.length;
+        let userTwoAnswerLength = battleroom.user2.answers?.length;
+        let entryFee = battleroom.entryFee;
 
-          let usertwoAnswerLength = battleroom.user2.answers?.length
-
-          let entryFee = battleroom.entryFee
-
-          if (useroneAnswerLength != 0 || usertwoAnswerLength != 0) {
-            if (useroneAnswerLength === usertwoAnswerLength) {
-              setTimeout(() => {
-                setNextQuestion()
-              }, 1000)
-              if (user1timer.current !== null && user2timer.current !== null) {
-                user1timer.current.resetTimer()
-                user2timer.current.resetTimer()
+        if (userOneAnswerLength !== 0 || userTwoAnswerLength !== 0) {
+          if (userOneAnswerLength === userTwoAnswerLength) {
+            setTimeout(() => {
+              setNextQuestion();
+            }, 1000);
+            if (user1timer.current !== null && user2timer.current !== null) {
+              user1timer.current.resetTimer();
+              user2timer.current.resetTimer();
+            }
+          } else if (userOneAnswerLength > userTwoAnswerLength) {
+            if (userData?.data?.id === battleroom.user1.uid) {
+              if (user1timer.current !== null) {
+                user1timer.current.pauseTimer();
               }
-            } else if (useroneAnswerLength > usertwoAnswerLength) {
-              if (userData?.data?.id === battleroom.user1.uid) {
-                if (user1timer.current !== null) {
-                  user1timer.current.pauseTimer()
-                }
-              } else {
-                if (user2timer.current !== null) {
-                  user2timer.current.pauseTimer()
-                }
+            } else {
+              if (user2timer.current !== null) {
+                user2timer.current.pauseTimer();
               }
-            } else if (useroneAnswerLength < usertwoAnswerLength) {
-              if (userData?.data?.id === battleroom.user2.uid) {
-                if (user1timer.current !== null) {
-                  user1timer.current.pauseTimer()
-                }
-              } else {
-                if (user2timer.current !== null) {
-                  user2timer.current.pauseTimer()
-                }
+            }
+          } else if (userOneAnswerLength < userTwoAnswerLength) {
+            if (userData?.data?.id === battleroom.user2.uid) {
+              if (user1timer.current !== null) {
+                user1timer.current.pauseTimer();
+              }
+            } else {
+              if (user2timer.current !== null) {
+                user2timer.current.pauseTimer();
               }
             }
           }
         }
-      },
-      error => {
-        console.log('err', error)
       }
-    )
-  }
+    }, (error) => {
+      console.error('Error listening for snapshot:', error);
+    });
+  };
+
 
   // point check
-  const checkCorrectAnswers = option => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const checkCorrectAnswers = async option => {
+    try {
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const docSnap = await getDoc(documentRef);
 
-          let user1name = battleroom.user1.name
+      if (!docSnap.exists()) {
+        console.log("No such document!");
+        return;
+      }
 
-          let user2name = battleroom.user2.name
+      let battleroom = docSnap.data();
 
-          let user1image = battleroom.user1.profileUrl
+      let user1name = battleroom.user1.name;
+      let user2name = battleroom.user2.name;
+      let user1image = battleroom.user1.profileUrl;
+      let user2image = battleroom.user2.profileUrl;
+      let user1correct = battleroom.user1.correctAnswers;
+      let user2correct = battleroom.user2.correctAnswers;
+      let user1uid = battleroom.user1.uid;
+      let user2uid = battleroom.user2.uid;
 
-          let user2image = battleroom.user2.profileUrl
+      // Store data in local storage to get in result screen
+      LoadGroupBattleData('user1name', user1name);
+      LoadGroupBattleData('user2name', user2name);
+      LoadGroupBattleData('user1image', user1image);
+      LoadGroupBattleData('user2image', user2image);
+      LoadGroupBattleData('user1uid', user1uid);
+      LoadGroupBattleData('user2uid', user2uid);
 
-          let user1correct = battleroom.user1.correctAnswers
-
-          let user2correct = battleroom.user2.correctAnswers
-
-          let user1uid = battleroom.user1.uid
-
-          let user2uid = battleroom.user2.uid
-
-          // store data in local storage to get in result screen
-          LoadGroupBattleData('user1name', user1name)
-          LoadGroupBattleData('user2name', user2name)
-          LoadGroupBattleData('user1image', user1image)
-          LoadGroupBattleData('user2image', user2image)
-          LoadGroupBattleData('user1uid', user1uid)
-          LoadGroupBattleData('user2uid', user2uid)
-
-          if (userData?.data?.id === battleroom.user1.uid) {
-            let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-            if (decryptedAnswer === option) {
-              // correctanswer push
-              db.collection('battleRoom')
-                .doc(battleRoomDocumentId)
-                .update({
-                  'user1.correctAnswers': user1correct + 1
-                })
-            }
-          } else if (userData?.data?.id === battleroom.user2.uid) {
-            let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id)
-            if (decryptedAnswer === option) {
-              // correctanswer push
-              db.collection('battleRoom')
-                .doc(battleRoomDocumentId)
-                .update({
-                  'user2.correctAnswers': user2correct + 1
-                })
-            }
-          }
+      let decryptedAnswer = decryptAnswer(questions[currentQuestion].answer, userData?.data?.firebase_id);
+      if (decryptedAnswer === option) {
+        // Correct answer push
+        if (userData?.data?.id === battleroom.user1.uid) {
+          await updateDoc(documentRef, {
+            'user1.correctAnswers': user1correct + 1
+          });
+        } else if (userData?.data?.id === battleroom.user2.uid) {
+          await updateDoc(documentRef, {
+            'user2.correctAnswers': user2correct + 1
+          });
         }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+      }
+    } catch (error) {
+      console.error("Error checking correct answers:", error);
+    }
   }
 
   //answerlength check
-  const SnapshotData = async () => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+  const SnapshotData = () => {
+    let documentRef = doc(db, "battleRoom", battleRoomDocumentId)
     let executed = false
     let TotalUserLength = false
 
-    documentRef.onSnapshot(
+    onSnapshot(documentRef,
       doc => {
         let navigatetoresult = true
 
-        if (doc.exists) {
+        if (doc.exists && doc.data()) {
           let battleroom = doc.data()
 
           let user1point = battleroom.user1.points
@@ -832,26 +757,24 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
                 const status = 1
                 // when play with robot coin not deducte if user id === 000
                 if (user2uid !== "000") {
-                  UserCoinScoreApi(
-                    '-' + battleroom.entryFee,
-                    null,
-                    null,
-                    t('Played Battle'),
-                    status,
-                    response => {
-                      getusercoinsApi(
-                        responseData => {
+                  UserCoinScoreApi({
+                    coins: '-' + battleroom.entryFee,
+                    title: t('played_battle'),
+                    status: status,
+                    onSuccess: response => {
+                      getusercoinsApi({
+                        onSuccess: responseData => {
                           updateUserDataInfo(responseData.data)
                         },
-                        error => {
+                        onError: error => {
                           console.log(error)
                         }
-                      )
+                      })
                     },
-                    error => {
+                    onError: error => {
                       console.log(error)
                     }
-                  )
+                  })
                 }
               }
             })
@@ -865,17 +788,17 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
 
           if (usersuid.includes(userData?.data?.id) && newArray?.length < 2) {
             MySwal.fire({
-              title: t('Opponent has left the game!'),
+              title: t('opponent_left'),
               icon: 'warning',
               showCancelButton: false,
               customClass: {
                 confirmButton: 'Swal-confirm-buttons',
                 cancelButton: "Swal-cancel-buttons"
-            },
+              },
               confirmButtonText: t('ok')
             }).then(result => {
               if (result.isConfirmed) {
-                navigate.push('/all-games')
+                navigate.push('/quiz-play')
                 deleteBattleRoom(battleRoomDocumentId)
               }
             })
@@ -892,9 +815,10 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
           })
 
           if (navigatetoresult) {
-            // end screen
-            onQuestionEnd()
-            deleteBattleRoom(battleRoomDocumentId)
+            setTimeout(async () => {
+              await onQuestionEnd();
+              deleteBattleRoom(battleRoomDocumentId);
+            }, 1000);
           }
         } else {
           if (navigatetoresult && questions?.length < currentQuestion) {
@@ -920,11 +844,11 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
     checkpoints()
 
     return () => {
-      let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+      let documentRef = doc(db, "battleRoom", battleRoomDocumentId);
 
-      documentRef.onSnapshot(
+      onSnapshot(documentRef,
         doc => {
-          if (doc.exists) {
+          if (doc.exists && doc.data()) {
             let battleroom = doc.data()
 
             let user1uid = battleroom && battleroom.user1.uid
@@ -933,21 +857,21 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
 
             let roomid = doc.id
 
-            if (user1uid == userData?.data?.id) {
-              db.collection('battleRoom').doc(roomid).update({
+            if (user1uid === userData?.data?.id) {
+              updateDoc(documentRef, {
                 'user1.name': '',
                 'user1.uid': '',
                 'user1.profileUrl': ''
-              })
-            } else if (user2uid == userData?.data?.id) {
-              db.collection('battleRoom').doc(roomid).update({
+              });
+            } else if (user2uid === userData?.data?.id) {
+              updateDoc(documentRef, {
                 'user2.name': '',
                 'user2.uid': '',
                 'user2.profileUrl': ''
-              })
+              });
             }
 
-            navigate.push('/all-games')
+            navigate.push('/quiz-play')
             deleteBattleRoom(roomid)
           }
         },
@@ -958,39 +882,10 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
     }
   }, [])
 
-  const handleBookmarkClick = (question_id, isBookmarked) => {
-    let type = 1
-    let bookmark = '0'
-
-    if (isBookmarked) bookmark = '1'
-    else bookmark = '0'
-
-    return setbookmarkApi(
-      question_id,
-      bookmark,
-      type,
-      response => {
-        if (response.error) {
-          toast.error(t('Cannot Remove Question from Bookmark'))
-          return false
-        } else {
-          if (isBookmarked) {
-            getAndUpdateBookmarkData(type)
-          } else {
-            deleteBookmarkByQuestionID(question_id)
-          }
-          return true
-        }
-      },
-      error => {
-        console.error(error)
-      }
-    )
-  }
 
   // const addMessage = async (message, by, roomId, isTextMessage ) => {
   //   try {
-  //     let documentreference = db.collection('messages').add({
+  //     let documentreference = await addDoc(collection(db, 'messages'), {
   //       by: by,
   //       isTextMessage: isTextMessage,
   //       message: message,
@@ -1024,168 +919,17 @@ const RandomQuestions = ({ questions: data, timerSeconds, onOptionClick, onQuest
   //   return { by: '', isTextMessage: false, message: '', messageId: '', roomId: '', timestamp: null };
   // };
 
-  
+
   const loggedInUserData = battleUserData.find(item => item.uid === userData?.data?.id);
 
 
   return (
     <React.Fragment>
-      <div className='dashboardPlayUppDiv funLearnQuestionsUpperDiv selfLearnQuestionsUpperDiv text-end p-2 pb-0'>
-        <div className="leftSec">
-          <div className="coins">
-            <span>{t("Coins")} : {userData?.data?.coins}</span>
-          </div>
-        </div>
-
-        <div className="rightSec">
-          <div className="rightWrongAnsDiv correctIncorrect">
-            <span className='rightAns'>
-              {currentQuestion + 1} - {questions?.length}</span>
-          </div>
-          <div className="p-2 pb-0">
-            {showBookmark ? (
-              <Bookmark
-                id={questions[currentQuestion].id}
-                isBookmarked={questions[currentQuestion].isBookmarked ? questions[currentQuestion].isBookmarked : true}
-                onClick={handleBookmarkClick}
-              />
-            ) : (
-              ''
-            )}
-          </div>
-        </div>
+      <div className='dashboardPlayUppDiv funLearnQuestionsUpperDiv selfLearnQuestionsUpperDiv text-end p-2 pb-0 '>
+        <QuestionTopSection currentQuestion={currentQuestion} questions={questions} showAnswers={false} />
       </div>
       <div className='questions battlequestion' ref={scroll}>
-        <div className='content__text'>
-          <p className='question-text pt-4'>{questions[currentQuestion].question}</p>
-        </div>
-
-        {questions[currentQuestion].image ? (
-          <div className='imagedash'>
-            <img src={questions[currentQuestion].image} onError={imgError} alt='' />
-          </div>
-        ) : (
-          ''
-        )}
-
-        {/* options */}
-        <div className='row optionsWrapper'>
-          {questions[currentQuestion].optiona ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('a')}`}
-                  onClick={e => handleAnswerOptionClick('a')}
-                >
-                  <div className='row'>
-                    <div className='col'>{questions[currentQuestion].optiona}</div>
-                    {questions[currentQuestion].probability_a ? (
-                      <div className='col text-end'>{questions[currentQuestion].probability_a}</div>
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                </button>
-              </div>
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].optionb ? (
-            <div className='col-md-6 col-12'>
-              <div className='inner__questions'>
-                <button
-                  className={`btn button__ui w-100 ${setAnswerStatusClass('b')}`}
-                  onClick={e => handleAnswerOptionClick('b')}
-                >
-                  <div className='row'>
-                    <div className='col'>{questions[currentQuestion].optionb}</div>
-                    {questions[currentQuestion].probability_b ? (
-                      <div className='col text-end'>{questions[currentQuestion].probability_b}</div>
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                </button>
-              </div>
-            </div>
-          ) : (
-            ''
-          )}
-          {questions[currentQuestion].question_type === '1' ? (
-            <>
-              {questions[currentQuestion].optionc ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('c')}`}
-                      onClick={e => handleAnswerOptionClick('c')}
-                    >
-                      <div className='row'>
-                        <div className='col'>{questions[currentQuestion].optionc}</div>
-                        {questions[currentQuestion].probability_c ? (
-                          <div className='col text-end'>{questions[currentQuestion].probability_c}</div>
-                        ) : (
-                          ''
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-              {questions[currentQuestion].optiond ? (
-                <div className='col-md-6 col-12'>
-                  <div className='inner__questions'>
-                    <button
-                      className={`btn button__ui w-100 ${setAnswerStatusClass('d')}`}
-                      onClick={e => handleAnswerOptionClick('d')}
-                    >
-                      <div className='row'>
-                        <div className='col'>{questions[currentQuestion].optiond}</div>
-                        {questions[currentQuestion].probability_d ? (
-                          <div className='col text-end'>{questions[currentQuestion].probability_d}</div>
-                        ) : (
-                          ''
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-              {systemconfig && systemconfig.option_e_mode && questions[currentQuestion].optione ? (
-                <div className='row d-flex justify-content-center mob_resp_e'>
-                  <div className='col-md-6 col-12'>
-                    <div className='inner__questions'>
-                      <button
-                        className={`btn button__ui w-100 ${setAnswerStatusClass('e')}`}
-                        onClick={e => handleAnswerOptionClick('e')}
-                      >
-                        <div className='row'>
-                          <div className='col'>{questions[currentQuestion].optione}</div>
-                          {questions[currentQuestion].probability_e ? (
-                            <div className='col' style={{ textAlign: 'right' }}>
-                              {questions[currentQuestion].probability_e}
-                            </div>
-                          ) : (
-                            ''
-                          )}
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                ''
-              )}
-            </>
-          ) : (
-            ''
-          )}
-        </div>
+        <QuestionMiddleSectionOptions questions={questions} currentQuestion={currentQuestion} setAnswerStatusClass={setAnswerStatusClass} handleAnswerOptionClick={handleAnswerOptionClick} probability={false} latex={true} />
 
         <div className='divider'>
           <hr style={{ width: '112%', backgroundColor: 'gray', height: '2px' }} />

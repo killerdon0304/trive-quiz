@@ -50,12 +50,12 @@ const Statistics = () => {
       }
     )
 
-    getUserStatisticsDataApi(
-      success => { },
-      error => {
-        // toast.error(error);
-      }
-    )
+    // getUserStatisticsDataApi(
+    //   success => { },
+    //   error => {
+    //     // toast.error(error);
+    //   }
+    // )
   }, [])
 
   // one big think badges
@@ -68,26 +68,24 @@ const Statistics = () => {
           LoadNewBadgesData('big_thing', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            big_thing_coin,
-            null,
-            null,
-            t('big thing badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: big_thing_coin,
+            title: t('big_thing_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -106,26 +104,24 @@ const Statistics = () => {
           LoadNewBadgesData('elite', '1')
           toast.success(t(res?.data?.notification_body))
           const status = 0
-          UserCoinScoreApi(
-            elite_coin,
-            null,
-            null,
-            t('elite badge reward'),
-            status,
-            response => {
-              getusercoinsApi(
-                responseData => {
+          UserCoinScoreApi({
+            coins: elite_coin,
+            title: t('elite_badge_reward'),
+            status: status,
+            onSuccess: response => {
+              getusercoinsApi({
+                onSuccess: responseData => {
                   updateUserDataInfo(responseData.data)
                 },
-                error => {
+                onError: error => {
                   console.log(error)
                 }
-              )
+              })
             },
-            error => {
+            onError: error => {
               console.log(error)
             }
-          )
+          })
         },
         error => {
           console.log(error)
@@ -136,19 +132,15 @@ const Statistics = () => {
 
   // get battleStatistics api call
   useEffect(() => {
-    getbattlestaticticsApi(
-      '',
-      '',
-      '',
-      '',
-      response => {
+    getbattlestaticticsApi({
+      onSuccess: response => {
         setBattleStatisticsResult(response.myreport)
         // console.log("battleStatisticsResult[0]", battleStatisticsResult[0])
       },
-      error => {
+      onError: error => {
         console.log(error)
       }
-    )
+    })
   }, [])
 
   const correctAnswers = userData?.data?.userStatics.correct_answers;
@@ -162,7 +154,7 @@ const Statistics = () => {
   const wonBattles = battleStatisticsResult && battleStatisticsResult[0] ? parseInt(battleStatisticsResult[0].Victories) || 0 : 0;
   const drawBattles = battleStatisticsResult && battleStatisticsResult[0] ? parseInt(battleStatisticsResult[0].Drawn) || 0 : 0;
   const lostBattles = battleStatisticsResult && battleStatisticsResult[0] ? parseInt(battleStatisticsResult[0].Loose) || 0 : 0;
-  
+
 
   // Calculate the total battles
   const totalBattles = wonBattles + drawBattles + lostBattles;
@@ -181,7 +173,7 @@ const Statistics = () => {
 
   return (
     <Layout>
-      <div className='Profile__Sec mt-5 statistics'>
+      <div className='Profile__Sec statistics'>
         <div className='container px-1'>
           <div className='morphism'>
             <div className='row pro-card position-relative'>
@@ -196,7 +188,7 @@ const Statistics = () => {
                   {/* question details */}
                   <div className='col-md-6 col-12'>
                     <div className='questions_details morphism'>
-                      <p className='questions_details_title'>{t('Questions Details')}</p>
+                      <p className='questions_details_title'>{`${t('questions')} ${t('details')} `}</p>
                       <div className="questionsDetials">
                         <div className="progressBar">
                           <div className='antDProgressBarWrapper'>
@@ -209,7 +201,7 @@ const Statistics = () => {
                             <div className='totAttemptQues'>
                               <span className='badge badge-pill custom_badge'>
                                 {userData?.data?.userStatics.questions_answered}</span>
-                              <span className='attempted'> {t('Attempted')}</span>
+                              <span className='attempted'> {t('att')}</span>
                             </div>
 
                           </div>
@@ -217,9 +209,9 @@ const Statistics = () => {
 
                         </div>
                         <div className="corrIncorrWrapper">
-                          <span className='corr'>  {t('Correct')} <span>{userData?.data &&
+                          <span className='corr'>  {t('correct')} <span>{userData?.data &&
                             (userData?.data?.userStatics.correct_answers ? userData?.data?.userStatics.correct_answers : '0')}</span></span>
-                          <span className='inCorr'> {t('Incorrect')} <span>{userData?.data &&
+                          <span className='inCorr'> {t('incorrect')} <span>{userData?.data &&
                             (parseInt(userData?.data?.userStatics.questions_answered) -
                               parseInt(userData?.data?.userStatics.correct_answers)
                               ? parseInt(userData?.data?.userStatics.questions_answered) -
@@ -235,20 +227,20 @@ const Statistics = () => {
                   {/*battle statistics */}
                   <div className='col-md-6 col-12'>
                     <div className='quiz_details questions_details morphism'>
-                      <p className='quiz_details_title'>{t('Battle Statistics')}</p>
+                      <p className='quiz_details_title'>{t('battle_statistics')}</p>
                       <div className="questionsDetials">
 
                         <StatisticsPieChartCanvas width={120} height={120} values={values} strokeWidth={8} totalBattles={totalBattles} />
 
                         {/* </div> */}
                         <div className="corrIncorrWrapper">
-                          <span className='corr won'>  {t('Won')} <span>{battleStatisticsResult && battleStatisticsResult.map((ele) => {
+                          <span className='corr won'>  {t('won')} <span>{battleStatisticsResult && battleStatisticsResult.map((ele) => {
                             return <span>{ele.Victories}</span>
                           })}</span></span>
-                          <span className='inCorr drow'> {t('Draw')} <span>{battleStatisticsResult && battleStatisticsResult.map((ele) => {
+                          <span className='inCorr drow'> {t('draw')} <span>{battleStatisticsResult && battleStatisticsResult.map((ele) => {
                             return <span>{ele.Drawn}</span>
                           })}</span></span>
-                          <span className='inCorr lost'> {t('Lost')} <span>{battleStatisticsResult && battleStatisticsResult.map((ele) => {
+                          <span className='inCorr lost'> {t('lost')} <span>{battleStatisticsResult && battleStatisticsResult.map((ele) => {
                             return <span>{ele.Loose}</span>
                           })}</span></span>
                         </div>
@@ -259,7 +251,7 @@ const Statistics = () => {
                   {/* quiz details */}
                   <div className='col-md-6 col-12'>
                     <div className='quiz_details morphism'>
-                      <p className='quiz_details_title'>{t('Quiz Details')}</p>
+                      <p className='quiz_details_title'>{`${t('quiz')} ${t('details')}`}</p>
                       <div className="rankDiv">
                         <span className='m-auto'>
                           <img src={userData?.data?.profile} alt="" onError={imgError} className='userProfile' />
@@ -269,15 +261,15 @@ const Statistics = () => {
 
                       <div className="pointScreen">
                         <div className="rankDiv">
-                          <span className='rankText'> {t('Rank')}</span>
+                          <span className='rankText'> {t('rank')}</span>
                           <span className='rankNum'> {userData?.data && userData?.data?.userProfileStatics.all_time_rank}</span>
                         </div>
                         <div className="innerDiv">
-                          <span>{t('Coins')}</span>
+                          <span>{t("coins")}</span>
                           <span className='boldText'>{userData?.data && userData?.data?.userProfileStatics.coins}</span>
                         </div>
                         <div className="innerDiv">
-                          <span>{t('Score')}</span>
+                          <span>{t('score')}</span>
                           <span className='boldText'> {userData?.data && userData?.data?.userProfileStatics.all_time_score}</span>
                         </div>
                       </div>
@@ -287,7 +279,7 @@ const Statistics = () => {
                   {/* collected badges */}
                   <div className='col-md-6 col-12 statisticsBadges'>
                     <div className='questions_details morphism badges battle_statistics_badges '>
-                      <p className='questions_details_title mb-0'>{t('Collected Badges')}</p>
+                      <p className='questions_details_title mb-0'>{t('collected_badges')}</p>
                       <ul className='questions_details_inner badgesImgWrapper mb-0 pb-0'>
                         {Badges.data && Badges.data?.length > 0 ? (
                           [...Object.values(Badges.data).filter(data => data.status === '1')]
@@ -310,12 +302,12 @@ const Statistics = () => {
                         ) : (
                           <div className='no_badges'>
 
-                            <span>{t("No Badges Founds")}</span>
+                            <span>{t("no_badges_founds")}</span>
                           </div>
                         )}
                       </ul>
                       <hr className='mt-0 mb-2' />
-                      <p className='mb-0 view_all text-center text-dark fw-bolder ' onClick={() => router.push("/profile/badges")}>{t('View All')}</p>
+                      <p className='mb-0 view_all text-center text-dark fw-bolder ' onClick={() => router.push("/profile/badges")}>{t('view_all')}</p>
                     </div>
                   </div>
                 </div>

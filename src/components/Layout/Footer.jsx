@@ -76,33 +76,33 @@ const Footer = () => {
                         </div>
                         <div className="col-md-6 col-lg-3  col-12 footer_left_second">
                             <div className="footer_title">
-                                <h4 className="footer_heading">{t("Policy")}</h4>
+                                <h4 className="footer_heading">{t("policy")}</h4>
                             </div>
                             <ul className="footer_policy">
                                 <li className="footer_list">
-                                    <Link href="/privacy-policy">{t("Privacy Policy")}</Link>
+                                    <Link href="/privacy-policy">{t("privacy_policy")}</Link>
                                 </li>
                                 <li className="footer_list">
-                                    <Link href="/terms-conditions">{t("Terms and Conditions")}</Link>
+                                    <Link href="/terms-conditions">{t("t&c")}</Link>
                                 </li>
                             </ul>
                         </div>
                         <div className="col-md-6 col-lg-3  col-12 footer_right">
                             <div className="footer_title">
-                                <h4 className="footer_heading">{t("Company")}</h4>
+                                <h4 className="footer_heading">{t("company")}</h4>
                             </div>
                             <ul className="footer_policy">
                                 <li className="footer_list">
-                                    <Link href="/about-us">{t("about-us")}</Link>
+                                    <Link href="/about-us">{t("about_us")}</Link>
                                 </li>
                                 <li className="footer_list">
-                                    <Link href="/contact-us">{t("Contact Us")}</Link>
+                                    <Link href="/contact-us">{t("contact_us")}</Link>
                                 </li>
                             </ul>
                         </div>
                         <div className="col-md-6 col-lg-3 col-12 footer_right">
                             <div className="footer_title">
-                                <h4 className="footer_heading">{t("Find Us Here")}</h4>
+                                <h4 className="footer_heading">{t("find_us_here")}</h4>
                             </div>
                             <ul className="footer_policy">
                                 {address_text ?
@@ -121,7 +121,7 @@ const Footer = () => {
                             </ul>
                             <ul className="footer_social">
                                 {SocialMedia && SocialMedia.map((data) => (
-                                    <li className="footer_social_list" key={data.id}>
+                                    <li className="footer_social_list" key={data.link}>
                                         <Link href={`${data.link}`} target="_blank">
                                             <img src={data.icon} alt="social-media" />
                                         </Link>
@@ -134,8 +134,8 @@ const Footer = () => {
 
                     <div className="footer_copyright text-center">
                         <p>
-                            {t("Copyright")} © {new Date().getFullYear()}
-                            {" "}{t("Made By")}{" "}
+                            {t("copyright")} © {new Date().getFullYear()}
+                            {" "}{t("made_by")}{" "}
                             <Link href={`${web_link_footer}`} target="_blank">
                                 {company_name_footer}
                             </Link>

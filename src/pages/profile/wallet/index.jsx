@@ -1,3 +1,4 @@
+"use client"
 import React, { use, useEffect, useState } from 'react'
 import { withTranslation } from 'react-i18next'
 import { t } from 'i18next'
@@ -8,14 +9,15 @@ import { Modal } from 'antd'
 import Skeleton from 'react-loading-skeleton'
 import { deletependingPayemntApi, getPaymentApi, getusercoinsApi, setPaymentApi } from 'src/store/actions/campaign'
 import { updateUserDataInfo } from 'src/store/reducers/userSlice'
-import { RiPaypalFill } from 'react-icons/ri'
-import { SiPaytm } from 'react-icons/si'
-import { FaStripe } from 'react-icons/fa'
 import { settingsData, sysConfigdata } from 'src/store/reducers/settingsSlice'
 import coinimg from "src/assets/images/coin.svg"
 import errorimg from "src/assets/images/error.svg"
 import Layout from 'src/components/Layout/Layout'
 import LeftTabProfile from 'src/components/Profile/LeftTabProfile'
+import paypal from 'src/assets/images/Paypal.svg'
+import paytm from 'src/assets/images/Paytm.svg'
+import stripe from 'src/assets/images/Stripe.svg'
+
 
 
 const Wallet = () => {
@@ -23,12 +25,6 @@ const Wallet = () => {
   const [modal, setModal] = useState(false)
 
   const [activeTab, setActiveTab] = useState('all');
-
-  const [paymentDailog, setPaymentDailog] = useState(false)
-
-  const [paytmId, setPaytmId] = useState(false)
-
-  const [stripeID, setStripeID] = useState(false)
 
   const [inputId, setInputId] = useState([])
 
@@ -42,7 +38,9 @@ const Wallet = () => {
 
   const [loading, setLoading] = useState(true)
 
-  const selectdata = useSelector(settingsData)
+  const [paymentIdModal, setPaymentIdModal] = useState(false)
+
+  const [paytmOptions, setPaytmOptions] = useState({ name: '', placeholder: '' })
 
   const systemconfig = useSelector(sysConfigdata)
 
@@ -64,6 +62,13 @@ const Wallet = () => {
   // here math.max use for check negative value if negative then it set 0
   const usercoins = Math.max(Number(userData?.data && userData?.data?.userProfileStatics.coins), 0)
 
+  // payment option icon, name and placeholder
+  const paymentIcones = [
+    { src: paypal, name: 'paypal' , placeholder: 'enter paypalid'},
+    { src: paytm, name: 'paytm' ,placeholder : 'enter mobilenumber'},
+    { src: stripe, name: 'stripe',placeholder: 'enter upi id' },
+  ];
+
   // user coins
   useEffect(() => {
     let data = usercoins
@@ -74,7 +79,6 @@ const Wallet = () => {
     }
     setWalletValue(newData)
   }, [])
-
 
   // inputcoinused (reverse process based input value data passed)
   const inputCoinUsed = () => {
@@ -111,18 +115,20 @@ const Wallet = () => {
   // payment type
   const paymentModal = (e, type) => {
     e.preventDefault()
-    if (type === 'paypal') {
-      setPaymentDailog(true)
+    if (type === paymentIcones[0].name) {
+      setPaytmOptions({ name: paymentIcones[0].name, placeholder:  paymentIcones[0].placeholder, })
+      setPaymentIdModal(true)
       setModal(false)
-    } else if (type === 'paytm') {
-      setPaytmId(true)
+    } else if (type === paymentIcones[1].name) {
+      setPaytmOptions({ name: paymentIcones[1].name, placeholder:  paymentIcones[1].placeholder, })
+      setPaymentIdModal(true)
       setModal(false)
-    } else if (type === 'stripe') {
-      setStripeID(true)
+    } else if (type === paymentIcones[2].name) {
+      setPaytmOptions({ name: paymentIcones[2].name, placeholder:  paymentIcones[2].placeholder, })
+      setPaymentIdModal(true)
       setModal(false)
     }
   }
-
   // input data
   const handleMerchantIdChange = event => {
     setInputId(event.target.value)
@@ -141,119 +147,49 @@ const Wallet = () => {
       toast.error('please fill your id')
       return
     }
-    // payment type check and set payment api call with coin update api
-    if (type === 'paypal') {
-      setPaymentApi(
-        'paypal',
-        `["${inputId}"]`,
-        redeemInput,
-        totalCoinUsed,
-        'Redeem Request',
-        response => {
-          setModal(false)
-          setPaymentDailog(false)
+    // set payment api call with coin update api
+
+    setPaymentApi({
+      payment_type: type,
+      payment_address: `["${inputId}"]`,
+      payment_amount: redeemInput,
+      coin_used: totalCoinUsed,
+      details: 'Redeem Request',
+      onSuccess: response => {
+        setModal(false)
+        setPaymentIdModal(false)
 
 
-          getusercoinsApi(
-            responseData => {
-              setActiveTab("pending")
-              setRedeemInput(0);
-              updateUserDataInfo(responseData.data)
-            },
-            error => {
-              console.log(error)
-            }
-          )
-
-        },
-        error => {
-          setModal(false)
-          if (error == 127) {
-            toast.error(
-              t(
-                'You have already made a payment request. Please wait for 48 hours after you made the previous request.'
-              )
-            )
+        getusercoinsApi({
+          onSuccess: responseData => {
+            setActiveTab("pending")
+            setRedeemInput(0);
+            updateUserDataInfo(responseData.data)
+          },
+          onError: error => {
+            console.log(error)
           }
-        }
-      )
-    } else if (type === 'paytm') {
-      setPaymentApi(
-        'paytm',
-        `["${inputId}"]`,
-        redeemInput,
-        totalCoinUsed,
-        'Redeem Request',
-        response => {
-          setModal(false)
-          setPaytmId(false)
+        })
 
-
-          getusercoinsApi(
-            responseData => {
-              setActiveTab("pending")
-              setRedeemInput(0);
-              updateUserDataInfo(responseData.data)
-            },
-            error => {
-              console.log(error)
-            }
-          )
-        },
-        error => {
-          setModal(false)
-          if (error == 127) {
-            toast.error(
-              t(
-                'You have already made a payment request. Please wait for 48 hours after you made the previous request.'
-              )
+      },
+      onError: error => {
+        setModal(false)
+        if (error == 127) {
+          toast.error(
+            t(
+              'next_payment_48_hours_latter'
             )
-          }
-        }
-      )
-    } else if (type === 'stripe') {
-      setPaymentApi(
-        'stripe',
-        `["${inputId}"]`,
-        redeemInput,
-        totalCoinUsed,
-        'Redeem Request',
-        response => {
-          setModal(false)
-          setStripeID(false)
-
-
-          getusercoinsApi(
-            responseData => {
-              setActiveTab("pending")
-              setRedeemInput(0);
-              updateUserDataInfo(responseData.data)
-            },
-            error => {
-              console.log(error)
-            }
           )
-        },
-        error => {
-          setModal(false)
-          if (error == 127) {
-            toast.error(
-              t(
-                'You have already made a payment request. Please wait for 48 hours after you made the previous request.'
-              )
-            )
-          }
         }
-      )
-    }
+      }
+    })
+
   }
 
   // get payment api fetch
   useEffect(() => {
-    getPaymentApi(
-      '',
-      '',
-      response => {
+    getPaymentApi({
+      onSuccess: response => {
         const resposneData = response.data
         setPaymentData(resposneData);
         // const totalAmount = resposneData.reduce((accumulator, currentObject) => {
@@ -265,10 +201,10 @@ const Wallet = () => {
         // }, 0);
         setLoading(false);
       },
-      error => {
+      onError: error => {
         setLoading(false);
       }
-    );
+    });
   }, [activeTab])
 
   // status data
@@ -332,15 +268,15 @@ const Wallet = () => {
         toast.success(t("successfully_delete"))
         setActiveTab("pending")
         setPaymentData([])
-        getusercoinsApi(
-          responseData => {
+        getusercoinsApi({
+          onSuccess: responseData => {
             setRedeemInput(0);
             updateUserDataInfo(responseData.data)
           },
-          error => {
+          onError: error => {
             console.log(error)
           }
-        )
+        })
       },
       onError: (error) => {
         console.log(error)
@@ -357,7 +293,7 @@ const Wallet = () => {
           filteredData.map((data, index) => (
             <div className={`reedem_request ${getStatusColor(data.status)}`} key={index}>
               <div className='redeem'>
-                <p className='redeem_txt'>{t('Redeem Request')}</p>
+                <p className='redeem_txt'>{t('redeem_request')}</p>
                 <p className='redeem_price'>
                   {currency_symbol}
                   {data?.payment_amount}
@@ -374,7 +310,7 @@ const Wallet = () => {
         ) : (
           <div className='text-center'>
             <img src={errorimg.src} title='wrteam' className='error_img' />
-            <p className='text-dark'>{t('No Data Found')}</p>
+            <p className='text-dark'>{t('no_data_found')}</p>
           </div>
         )}
       </>
@@ -384,7 +320,7 @@ const Wallet = () => {
   return (
     <Layout>
 
-      <section className='Profile__Sec wallet my-5'>
+      <section className='Profile__Sec wallet'>
         <div className='container'>
           <div className="morphism ">
             <div className='row pro-card position-relative'>
@@ -398,17 +334,17 @@ const Wallet = () => {
                 <div className='row morphisam card'>
                   <div className='col-md-12 col-12 walletContentWrapper'>
                     <div className='request_data pt-3'>
-                      <h2 className='headline'>{t('request-payment')}</h2>
+                      <h2 className='headline'>{t('request_payment')}</h2>
                       <div className="requestDataWrapper">
 
                         <div className="totCoinsDiv">
-                          <span>{t('Total Coins')}</span>
+                          <span>{`${t('total')} ${t('coins')} `}</span>
                           <span className='coins'>
                             <img className='me-1' src={coinimg.src} alt='coin' />
                             {usercoins}</span>
                         </div>
                         <div className="reedembleAmtDiv">
-                          <span>{`${t('Redeemable Amount')}${currency_symbol}`}</span>
+                          <span>{`${t('redeemable_amount')}${currency_symbol}`}</span>
                           <span> <input
                             type='number'
                             className='price'
@@ -419,22 +355,22 @@ const Wallet = () => {
                         </div>
                         <div className="reedemBtnDiv">
                           <button className='btn btn-primary' onClick={e => redeemNow(e)}>
-                            {t('Redeem Now')}
+                            {t('redeem_now')}
                           </button>
                         </div>
                       </div>
                     </div>
 
                     <div className="notesDiv">
-                      <p className='notes'>{t('Notes')} :</p>
+                      <p className='notes'>{t('notes')} :</p>
                       <ul>
-                        <li className='notes_data'>{t('Payout will take 3 - 5 working days')}</li>
-                        <li className='notes_data'>{`${t("Minimum Redeemable amount is")} ${currency_symbol}${minimumValue()}`}</li>
+                        <li className='notes_data'>{t('payout_days')}</li>
+                        <li className='notes_data'>{`${t("minimum_redeemable_amount")} ${currency_symbol}${minimumValue()}`}</li>
                       </ul>
                     </div>
                     {/* {paymentData?.length > 0 ? ( */}
                     <div className="transactionDiv">
-                      <h2 className='headline'>{t('Transaction')}</h2>
+                      <h2 className='headline'>{t('transaction')}</h2>
                       {loading ? (
                         <div className='text-center'>
                           <Skeleton count={5} />
@@ -448,14 +384,14 @@ const Wallet = () => {
                             fill
                             className='mb-3'
                           >
-                            <Tab eventKey='all' title={t('All')}>
+                            <Tab eventKey='all' title={t('all')}>
                               {renderDataByStatus('2')}
                             </Tab>
-                            <Tab eventKey='completed' title={t('Completed')}>
+                            <Tab eventKey='completed' title={t('completed')}>
                               {renderDataByStatus('1')}
                             </Tab>
-                            <Tab eventKey='pending' title={t('Pending')}>
-                             
+                            <Tab eventKey='pending' title={t('pending')}>
+
                               {renderDataByStatus('0')}
                               {pendingData && pendingData.length > 0 ? <button className='delete-request btn btn-danger' onClick={() => deleteRequest(paymentData[0].id)}>{t("delete_request")}</button> : null}
 
@@ -477,10 +413,11 @@ const Wallet = () => {
 
       {/* payment icon payout modal */}
       <Modal
+      className='payment_modal'
         maskClosable={false}
-        title={t('Wallet')}
+        title={t('wallet')}
         centered
-        visible={modal}
+        open={modal}
         onOk={() => setModal(false)}
         onCancel={e => {
           setModal(false)
@@ -489,122 +426,53 @@ const Wallet = () => {
         footer={null}
       >
         <h4>
-          {t('Redeemable Amount')} {currency_symbol}
+          {t('redeemable_amount')} {currency_symbol}
           {redeemInput}
         </h4>
         <p>
-          {modalCoinValue()} {t('Coins will be deducted')}
+          {modalCoinValue()} {t('coins_deducted')}
         </p>
         <hr className='hr' />
-        <p>{t('Select payout option')}</p>
+        <p>{t('select_payout_option')}</p>
         <ul className='payment_icon ps-0'>
-          <li onClick={e => paymentModal(e, 'paypal')}>
+        {paymentIcones.map((icon)=>{
+          return(
+          <li onClick={e => paymentModal(e, icon.name)}>
             <i >
-              <RiPaypalFill />
+              <img src={icon.src.src} alt={icon} />
             </i>
           </li>
-          <li onClick={e => paymentModal(e, 'paytm')}>
-            <i >
-              <SiPaytm />
-            </i>
-          </li>
-          <li onClick={e => paymentModal(e, 'stripe')}>
-            <i >
-              <FaStripe />
-            </i>
-          </li>
+          )
+        })}
         </ul>
       </Modal>
 
-      {/* paypal modal */}
       <Modal
         maskClosable={false}
-        title={t('Wallet')}
+        title={t('wallet')}
         centered
-        visible={paymentDailog}
-        onOk={() => setPaymentDailog(false)}
+        open={paymentIdModal}
+        onOk={() => setPaymentIdModal(false)}
         onCancel={() => {
-          setPaymentDailog(false)
+          setPaymentIdModal(false)
           onCancelbutton()
         }}
         footer={null}
       >
         <h3>
-          {t('Payout Method')} - {t('PayPal')}
+          {t('payout_method')} - {t(paytmOptions.name)}
         </h3>
         <div className='input_data'>
           <input
             type='text'
-            placeholder='enter paypal id'
+            placeholder={paytmOptions.placeholder}
             value={inputId}
             onChange={event => handleMerchantIdChange(event)}
           />
         </div>
         <div className='make_payment text-end mt-3'>
-          <button className='btn btn-primary' onClick={event => makeRequest(event, 'paypal')}>
-            {t('Make Request')}
-          </button>
-        </div>
-      </Modal>
-
-      {/* paytm modal */}
-      <Modal
-        maskClosable={false}
-        title={t('Wallet')}
-        centered
-        visible={paytmId}
-        onOk={() => setPaytmId(false)}
-        onCancel={() => {
-          setPaytmId(false)
-          onCancelbutton()
-        }}
-        footer={null}
-      >
-        <h3>
-          {t('Payout Method')} - {t('Paytm')}
-        </h3>
-        <div className='input_data'>
-          <input
-            type='text'
-            placeholder='enter mobile number'
-            value={inputId}
-            onChange={event => handleMerchantIdChange(event)}
-          />
-        </div>
-        <div className='make_payment text-end mt-3'>
-          <button className='btn btn-primary' onClick={event => makeRequest(event, 'paytm')}>
-            {t('Make Request')}
-          </button>
-        </div>
-      </Modal>
-
-      {/* stripe modal */}
-      <Modal
-        maskClosable={false}
-        title={t('Wallet')}
-        centered
-        visible={stripeID}
-        onOk={() => setStripeID(false)}
-        onCancel={() => {
-          setStripeID(false)
-          onCancelbutton()
-        }}
-        footer={null}
-      >
-        <h3>
-          {t('Payout Method')} - {t('Stripe')}
-        </h3>
-        <div className='input_data'>
-          <input
-            type='text'
-            placeholder='enter upi id'
-            value={inputId}
-            onChange={event => handleMerchantIdChange(event)}
-          />
-        </div>
-        <div className='make_payment text-end mt-3'>
-          <button className='btn btn-primary' onClick={event => makeRequest(event, 'stripe')}>
-            {t('Make Request')}
+          <button className='btn btn-primary' onClick={event => makeRequest(event, paytmOptions.name)}>
+            {t('make_req')}
           </button>
         </div>
       </Modal>

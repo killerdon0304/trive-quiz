@@ -3,7 +3,7 @@ const menu_data = [
     id: 1,
     mega_menu: false,
     has_dropdown: false,
-    title: 'Home',
+    title: 'home',
     link: '/',
     active: 'active'
   },
@@ -11,15 +11,15 @@ const menu_data = [
     id: 2,
     mega_menu: false,
     has_dropdown: false,
-    title: 'Quiz Play',
-    link: '/all-games',
+    title: 'quiz_play',
+    link: '/quiz-play',
     active: ''
   },
   {
     id: 3,
     mega_menu: false,
     has_dropdown: false,
-    title: 'Instruction',
+    title: 'instruction',
     link: '/instruction',
     active: ''
   },
@@ -27,7 +27,7 @@ const menu_data = [
     id: 4,
     mega_menu: false,
     has_dropdown: true,
-    title: 'More',
+    title: 'more',
     link: '/',
     active: '',
     sub_menus: [

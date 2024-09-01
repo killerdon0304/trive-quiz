@@ -9,7 +9,7 @@ const Breadcrumb = ({ showBreadcrumb, title, content, contentTwo, contentThree, 
   return (
     <React.Fragment>
       {showBreadcrumb &&
-        <div div className='breadcrumb__wrapper'>
+        <div className='breadcrumb__wrapper'>
           <div className='row'>
             <div className='Breadcrumb container'>
               <div className='page-title'>
@@ -20,7 +20,7 @@ const Breadcrumb = ({ showBreadcrumb, title, content, contentTwo, contentThree, 
                   <li className='parent__link'>
                     <Link href={'/'}>{content}</Link>
                   </li>
-                  {allgames && <li className='current allgames'><Link href={'/all-games'}>{allgames}</Link></li>}
+                  {allgames && <li className='current allgames'><Link href={'/quiz-play'}>{allgames}</Link></li>}
                   {contentTwo && <li className='current'>{contentTwo}</li>}
                   {contentThree && <li className='current'>{contentThree}</li>}
                   {contentFour && <li className='current'>{contentFour}</li>}

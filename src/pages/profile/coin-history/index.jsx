@@ -42,64 +42,62 @@ const CoinHistory = () => {
     }
   };
 
-
   const fetchAllData = () => {
-    getTrackerDataApi(
-      allCurrentPage * dataPerPage,
-      dataPerPage,
-      '',
-      response => {
+    getTrackerDataApi({
+      offset: allCurrentPage * dataPerPage,
+      limit: dataPerPage,
+      onSuccess: response => {
         setAllData(response.data);
         setTotal(response.total);
         setIsLoading(false);
       },
-      error => {
+      onError: error => {
         if (error === "102") {
           setTotal(0); // Set total to 0
           setIsLoading(false);
         }
       }
-    );
+    });
   };
 
 
   const fetchIncomeData = () => {
-    getTrackerDataApi(
-      incomeCurrentPage * dataPerPage,
-      dataPerPage,
-      '1',
-      response => {
+    getTrackerDataApi({
+      offset: incomeCurrentPage * dataPerPage,
+      limit: dataPerPage,
+      type: '1',
+      onSuccess: response => {
         setIncomeData(response.data);
         setInocmetotal(response.total);
         setIsLoading(false);
       },
-      error => {
+      onError: error => {
         if (error === "102") {
           setInocmetotal(0); // Set total to 0
           setIsLoading(false);
         }
       }
-    );
+    });
   };
 
   const fetchLoseData = () => {
-    getTrackerDataApi(
-      loseCurrentPage * dataPerPage,
-      dataPerPage,
-      '2',
-      response => {
+    getTrackerDataApi({
+      offset: loseCurrentPage * dataPerPage,
+      limit: dataPerPage,
+      type: '2',
+      onSuccess: response => {
         setLoseData(response.data);
         setLosetotal(response.total);
         setIsLoading(false);
       },
-      error => {
+      onError: error => {
         if (error === "102") {
           setLosetotal(0); // Set total to 0
           setIsLoading(false);
         }
 
       }
-    );
+    });
   };
 
   useEffect(() => {
@@ -148,7 +146,7 @@ const CoinHistory = () => {
 
   return (
     <Layout>
-      <section className='Profile__Sec mt-5 coinhistory'>
+      <section className='Profile__Sec coinhistory'>
         <div className='container'>
 
           <div className='morphism morphisam'>
@@ -183,7 +181,7 @@ const CoinHistory = () => {
                     fill
                     className='mb-3'
                   >
-                    <Tab eventKey='all' title={t('All')}>
+                    <Tab eventKey='all' title={t('all')}>
                       {isLoading ? (
                         // Show skeleton loading
                         <div className='col-12'>
@@ -211,7 +209,7 @@ const CoinHistory = () => {
                       ) : (
                         // Show "No data found" message
                         <div className='col-12'>
-                          <p className='text-center'>{t('No Data Found')}</p>
+                          <p className='text-center'>{t('no_data_found')}</p>
                         </div>
                       )}
                     </Tab>
@@ -244,7 +242,7 @@ const CoinHistory = () => {
                         // Show "No data found" message
                         <div className='col-12'>
                           <p className='text-center'>
-                            {t('No Data Found')}</p>
+                            {t('no_data_found')}</p>
                         </div>
                       )}
                     </Tab>
@@ -276,7 +274,7 @@ const CoinHistory = () => {
                       ) : (
                         // Show "No data found" message
                         <div className='col-12'>
-                          <p className='text-center'>{t('No Data Found')}</p>
+                          <p className='text-center'>{t('no_data_found')}</p>
                         </div>
                       )}
                     </Tab>

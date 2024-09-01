@@ -1,8 +1,11 @@
 import { withTranslation } from 'react-i18next'
 import Skeleton from 'react-loading-skeleton'
-import FunandLearnIntro from './FunandLearnIntro'
 import { t } from 'i18next'
 import errorimg from "src/assets/images/error.svg"
+import { lazy, Suspense } from 'react'
+import QuestionSkeleton from 'src/components/view/common/QuestionSkeleton'
+import CatCompoSkeleton from 'src/components/view/common/CatCompoSkeleton'
+const FunandLearnIntro = lazy(()=>import('./FunandLearnIntro'))
 
 const FunandLearnSlider = data => {
 
@@ -13,7 +16,7 @@ const FunandLearnSlider = data => {
           <div className='quizplay-slider row'>
             {data.funandlearningloading ? (
               <div className='text-center'>
-                <Skeleton count={5} />
+                <CatCompoSkeleton />
               </div>
             ) : (
               <>
@@ -23,13 +26,14 @@ const FunandLearnSlider = data => {
                       data.data.map((Fundata, key) => {
                         return (
                           <div className='col-md-3 col-12' key={key}>
+<Suspense fallback={<QuestionSkeleton/>}>
                             <FunandLearnIntro
                               categoryall={data.categoryall}
                               subcategoryall={data.subcategoryall}
                               data={Fundata}
-
                               funandlearn={Fundata.id}
                             />
+                            </Suspense>
                           </div>
                         )
                       })}
@@ -37,7 +41,7 @@ const FunandLearnSlider = data => {
                 ) : (
                   <div className='text-center mt-4 commonerror'>
                     <img src={errorimg.src} title='wrteam' className='error_img' />
-                    <p>{t('No Data found')}</p>
+                    <p>{t('no_data_found')}</p>
                   </div>
                 )}
               </>

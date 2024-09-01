@@ -11,20 +11,22 @@ import { categoriesApi } from 'src/store/actions/campaign'
 import { selectCurrentLanguage } from 'src/store/reducers/languageSlice'
 import { groupbattledata, LoadGroupBattleData, loadShowScoreData } from 'src/store/reducers/groupbattleSlice'
 import { Loadtempdata, playwithFrienddata, reviewAnswerShowSuccess } from 'src/store/reducers/tempDataSlice'
-import FirebaseData from 'src/utils/Firebase'
 import { useRouter } from 'next/navigation'
 import Breadcrumb from 'src/components/Common/Breadcrumb'
 import Timer from 'src/components/Common/Timer'
 import dynamic from 'next/dynamic'
 import vsimg from "src/assets/images/vs.svg"
-const Layout = dynamic(() => import('src/components/Layout/Layout'), { ssr: false })
 import { t } from 'i18next'
+import { getFirestore, collection, doc, onSnapshot, getDocs, query, serverTimestamp, addDoc, updateDoc, deleteDoc, where, runTransaction, getDoc } from 'firebase/firestore';
+
 
 const RandomBattle = () => {
   // store data get
   const userData = useSelector(state => state.User)
 
   const dispatch = useDispatch()
+
+  const db = getFirestore();
 
   const selectcurrentLanguage = useSelector(selectCurrentLanguage)
 
@@ -63,9 +65,6 @@ const RandomBattle = () => {
   const child = useRef(null)
 
   const navigate = useRouter()
-
-  const { db, firebase } = FirebaseData()
-
   let languageid = selectcurrentLanguage.id
 
   let category_selected = systemconfig && systemconfig.battle_mode_random_category == '1' ? category.selected : ''
@@ -84,10 +83,10 @@ const RandomBattle = () => {
 
   // get category data
   const getAllData = () => {
-    categoriesApi(
-      1,
-      2,
-      response => {
+    categoriesApi({
+      type: 1,
+      sub_type: 2,
+      onSuccess: response => {
         let categoires = response.data
         // Filter the categories based on has_unlocked and is_premium
         const filteredCategories = categoires.filter(category => {
@@ -101,11 +100,11 @@ const RandomBattle = () => {
         })
         setLoading(false)
       },
-      error => {
+      onError: error => {
         setLoading(false)
         console.log(error)
       }
-    )
+    })
   }
 
   // select category
@@ -129,9 +128,9 @@ const RandomBattle = () => {
     questionlanguageId
   ) => {
     try {
-      let documentreference = db.collection('battleRoom').add({
+      let documentreference = addDoc(collection(db, 'battleRoom'), {
         categoryId: categoryId,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: serverTimestamp(),
         createdBy: uid,
         entryFee: entryFee ? entryFee : 0,
         languageId: questionlanguageId,
@@ -148,7 +147,7 @@ const RandomBattle = () => {
         },
         user2: {
           answers: [],
-          name: t('botName'),
+          name: t('botname'),
           points: 0,
           profileUrl: bot_image,
           uid: '000',
@@ -175,9 +174,9 @@ const RandomBattle = () => {
   ) => {
     try {
 
-      let documentreference = db.collection('battleRoom').add({
+      let documentreference = addDoc(collection(db, 'battleRoom'), {
         categoryId: categoryId,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: serverTimestamp(),
         createdBy: uid,
         entryFee: entryFee ? entryFee : 0,
         languageId: questionlanguageId,
@@ -213,7 +212,7 @@ const RandomBattle = () => {
   // delete battle room
   const deleteBattleRoom = async documentId => {
     try {
-      await db.collection('battleRoom').doc(documentId).delete()
+      await deleteDoc(doc(db, "battleRoom", documentId));
     } catch (error) {
       toast.error(error)
     }
@@ -222,23 +221,27 @@ const RandomBattle = () => {
   // find room
   const searchBattleRoom = async (languageId, categoryId) => {
     try {
-      let userfind = await db
-        .collection('battleRoom')
-        .where('languageId', '==', languageId)
-        .where('categoryId', '==', categoryId)
-        .where('roomCode', '==', '')
-        .where('user2.uid', '==', '')
-        .get()
+      const q = query(
+        collection(db, 'battleRoom'),
+        where('languageId', '==', languageId),
+        where('categoryId', '==', categoryId),
+        where('roomCode', '==', ''),
+        where('user2.uid', '==', ''),
+      );
 
-      let userfinddata = userfind.docs
+      const userFindSnapshot = await getDocs(q);
+
+      let userfinddata = userFindSnapshot.docs
 
       let index = userfinddata.findIndex(elem => {
         return elem.data().createdBy == useruid
       })
 
       if (index !== -1) {
+
         deleteBattleRoom(userfinddata[index].id)
-        userfinddata.splice(userfinddata?.length, index)
+        userfinddata.splice(index, 1)
+
       }
 
       return userfinddata
@@ -251,64 +254,70 @@ const RandomBattle = () => {
   // join battle room
   const joinBattleRoom = async (name, profileUrl, uid, battleRoomDocumentId) => {
     try {
-      let documentRef = (await db.collection('battleRoom').doc(battleRoomDocumentId).get()).ref
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-      return db.runTransaction(async transaction => {
-        let document = await transaction.get(documentRef)
+      await runTransaction(db, async transaction => {
+        const documentSnapshot = await transaction.get(documentRef);
+        if (!documentSnapshot.exists()) {
+          throw new Error("Document does not exist!");
+        }
 
-        let userdetails = document.data()
+        const userdetails = documentSnapshot.data();
+        const { user2 } = userdetails;
 
-        let user2 = userdetails.user2
-
-        LoadGroupBattleData('totalusers', 2)
+        LoadGroupBattleData('totalusers', 2);
 
         if (user2.uid === '') {
           transaction.update(documentRef, {
             'user2.name': name,
             'user2.uid': uid,
             'user2.profileUrl': profileUrl
-          })
+          });
 
-          return false
+          return false;
         }
 
-        return true
-      })
+        return true;
+      });
+
     } catch (error) {
-      toast.error(error)
-      console.log(error)
+      toast.error(error.message);
+      console.log(error);
     }
   }
 
   // join battle room with bot
   const joinBattleRoomWithBot = async (name, profileUrl, uid, battleRoomDocumentId) => {
     try {
-      let documentRef = (await db.collection('battleRoom').doc(battleRoomDocumentId).get()).ref
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-      return db.runTransaction(async transaction => {
-        let document = await transaction.get(documentRef)
+      await runTransaction(db, async transaction => {
+        const documentSnapshot = await transaction.get(documentRef);
+        if (!documentSnapshot.exists()) {
+          throw new Error("Document does not exist!");
+        }
 
-        let userdetails = document.data()
+        const userdetails = documentSnapshot.data();
+        const { user2 } = userdetails;
 
-        let user2 = userdetails.user2
-
-        LoadGroupBattleData('totalusers', 2)
+        LoadGroupBattleData('totalusers', 2);
 
         if (user2.uid === '') {
           transaction.update(documentRef, {
             'user2.name': name,
             'user2.uid': uid,
             'user2.profileUrl': profileUrl
-          })
+          });
 
-          return false
+          return false;
         }
 
-        return true
-      })
+        return true;
+      });
+
     } catch (error) {
-      toast.error(error)
-      // console.log(error)
+      toast.error(error.message);
+      console.log(error);
     }
   }
 
@@ -343,36 +352,47 @@ const RandomBattle = () => {
 
   // subsscribebattle room
   const subscribeToBattleRoom = battleRoomDocumentId => {
-    let documentRef = db.collection('battleRoom').doc(battleRoomDocumentId)
+    try {
+      if (!battleRoomDocumentId) return;
+      const documentRef = doc(db, 'battleRoom', battleRoomDocumentId);
 
-    documentRef.onSnapshot(
-      { includeMetadataChanges: true },
-      doc => {
-        if (doc.exists) {
-          let battleroom = doc.data()
+      const unsubscribe = onSnapshot(
+        documentRef,
+        { includeMetadataChanges: true },
+        (doc) => {
+          if (doc.exists && doc.data()) {
+            const battleroom = doc.data();
+            const { user2 } = battleroom;
+            const userNotfound = user2.uid;
 
-          let userNotfound = battleroom.user2.uid
+            if (userNotfound !== '') {
+              setShowBattle(true);
+              TimerScreen();
+            } else {
+              setOldTimer(true);
+            }
 
-          if (userNotfound !== '') {
-            setShowBattle(true)
-            TimerScreen()
-          } else {
-            setOldTimer(true)
+            // for user1
+            if (userData?.data?.id === battleroom.user1.uid) {
+              setUserdata({ ...userdata, userName: battleroom.user2.name, profile: battleroom.user2.profileUrl });
+            } else {
+              setUserdata({ ...userdata, userName: battleroom.user1.name, profile: battleroom.user1.profileUrl });
+            }
           }
-
-          // for user1
-          if (userData?.data?.id === battleroom.user1.uid) {
-            setUserdata({ ...userdata, userName: battleroom.user2.name, profile: battleroom.user2.profileUrl })
-          } else {
-            setUserdata({ ...userdata, userName: battleroom.user1.name, profile: battleroom.user1.profileUrl })
-          }
+        },
+        (error) => {
+          console.log('err', error);
+          toast.error(error.message);
         }
-      },
-      error => {
-        console.log('err', error)
-      }
-    )
-  }
+      );
+
+      // Return the unsubscribe function to clean up the listener when needed
+      return unsubscribe;
+    } catch (error) {
+      console.error("An error occurred:", error);
+      toast.error("An error occurred while subscribing to the battle room.");
+    }
+  };
 
   // snapshot listner
   useEffect(() => {
@@ -459,7 +479,7 @@ const RandomBattle = () => {
 
       let roomdocid
 
-      if (documents?.length !== 0) {
+      if (documents && documents.length > 0) {
         let room = documents[Math.floor(Math.random() * documents?.length)]
 
         roomdocid = room.id
@@ -472,6 +492,7 @@ const RandomBattle = () => {
         }
       } else {
         roomdocid = await createRoom()
+
         // createRoom();
       }
       setShowBattle(true)
@@ -494,7 +515,7 @@ const RandomBattle = () => {
 
       let roomdocid
 
-      if (documents?.length !== 0) {
+      if (documents && documents.length > 0) {
         let room = documents[Math.floor(Math.random() * documents?.length)]
 
         roomdocid = room.id
@@ -547,12 +568,12 @@ const RandomBattle = () => {
   }, [selectCurrentLanguage])
 
   const onBackScreen = () => {
-    navigate.push('/all-games')
+    navigate.push('/quiz-play')
   }
 
   return (
-    <Layout>
-      <Breadcrumb title={t('1 vs 1 Battle')} content="" contentTwo="" />
+    <>
+      <Breadcrumb title={t('1 v/s 1 Battle')} content="" contentTwo="" />
       <div className='SelfLearning battlequiz my-5'>
         <div className='container'>
           <div className='row morphisam'>
@@ -567,7 +588,7 @@ const RandomBattle = () => {
                       {showTimer ? (
                         <>
                           <Timer ref={child} timerSeconds={3} onTimerExpire={seconduserfound} />
-                          <p className='text-dark'>{t('Lets Get Started')}</p>
+                          <p className='text-dark'>{t('lets_get_started')}</p>
                         </>
                       ) : (
                         ''
@@ -600,101 +621,101 @@ const RandomBattle = () => {
               </div>
             ) : (
               <>
-              {systemconfig?.battle_mode_random === "1" ?
-                <div className='col-md-12 col-lg-6 col-12'>
-                  <div className='left_content'>
-                    <div className='left-sec right_content'>
-                      <h3 className=' mb-3 leftSecTite'>{t('Random Battle')}</h3>
-                      <hr />
-                      <div className='two_header_content d-flex flex-wrap align-items-center mb-3 mt-4'>
-                        <div className='random_fees '>
-                          <p>
-                            {t('Entry Fees')}:{' '}
-                            <span>
-                              {entrycoins} {''}
-                              {t('Coins')}
-                            </span>
-                          </p>
+                {systemconfig?.battle_mode_random === "1" ?
+                  <div className='col-md-12 col-lg-6 col-12'>
+                    <div className='left_content'>
+                      <div className='left-sec right_content'>
+                        <h3 className=' mb-3 leftSecTite'>{t('random_battle')}</h3>
+                        <hr />
+                        <div className='two_header_content d-flex flex-wrap align-items-center mb-3 mt-4'>
+                          <div className='random_fees '>
+                            <p>
+                              {t('entry_fees')}:{' '}
+                              <span>
+                                {entrycoins} {''}
+                                {t("coins")}
+                              </span>
+                            </p>
+                          </div>
+                          <div className='random_current_coins'>
+                            <p>
+                              {t('current_coins')}:
+                              <span>
+                                {coninsUpdate} {t("coins")}
+                              </span>
+                            </p>
+                          </div>
                         </div>
-                        <div className='random_current_coins'>
-                          <p>
-                            {t('Current Coins')}:
-                            <span>
-                              {coninsUpdate} {t("Coins")}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className='bottom__cat__box'>
-                        {(() => {
-                          if (systemconfig && systemconfig.battle_mode_random_category == '1') {
-                            return (
-                              <div className="seleterWrapper">
-                                <Form.Select
-                                  aria-label='Default select example'
-                                  size='lg'
-                                  className='selectform'
-                                  onChange={e => handleSelectCategory(e)}
-                                >
-                                  {loading ? (
-                                    <option>{t('Loading...')}</option>
-                                  ) : (
-                                    <>
-                                      {category.all ? (
-                                        category.all.map((cat_data, key) => {
-                                          // console.log("",cat_data)
-                                          const { category_name } = cat_data
-                                          return (
-                                            <option key={key} name={cat_data.category_name} value={cat_data.key} id={cat_data.id} no_of={cat_data.no_of}>
-                                              {category_name}
-                                            </option>
-                                          )
-                                        })
-                                      ) : (
-                                        <option>{t('No Category Data Found')}</option>
-                                      )}
-                                    </>
-                                  )}
-                                </Form.Select>
-                              </div>
-                            )
-                          }
-                        })()}
-                        <div className='random_play'>
-                          <button type='submit' className='btn btn-primary' onClick={() => searchRoom()}>
-                            {t('play-now')}
-                          </button>
+                        <div className='bottom__cat__box'>
+                          {(() => {
+                            if (systemconfig && systemconfig.battle_mode_random_category == '1') {
+                              return (
+                                <div className="seleterWrapper">
+                                  <Form.Select
+                                    aria-label='Default select example'
+                                    size='lg'
+                                    className='selectform'
+                                    onChange={e => handleSelectCategory(e)}
+                                  >
+                                    {loading ? (
+                                      <option>{t('loading')}</option>
+                                    ) : (
+                                      <>
+                                        {category.all ? (
+                                          category.all.map((cat_data, key) => {
+                                            // console.log("",cat_data)
+                                            const { category_name } = cat_data
+                                            return (
+                                              <option key={key} name={cat_data.category_name} value={cat_data.key} id={cat_data.id} no_of={cat_data.no_of}>
+                                                {category_name}
+                                              </option>
+                                            )
+                                          })
+                                        ) : (
+                                          <option>{t('no_cat_data_found')}</option>
+                                        )}
+                                      </>
+                                    )}
+                                  </Form.Select>
+                                </div>
+                              )
+                            }
+                          })()}
+                          <div className='random_play'>
+                            <button type='submit' className='btn btn-primary' onClick={() => searchRoom()}>
+                              {t('play_now')}
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                    </div>
-                  </div>
-                </div>
-                : null
-              }
-              {systemconfig?.battle_mode_one === "1" ?
-                <div className='col-md-12 col-lg-6 col-12'>
-                  <div className='left_content'>
-                    <div className='left-sec right_content'>
-                      <h3 className=' mb-3 leftSecTite'>{t('play-with-friend')}</h3>
-                      <hr />
-                      <div className='two_header_content d-flex flex-wrap align-items-center mb-3 mt-4'>
-                        <div className='playFrdPara'>
-                          <p>{t("playFrdPara")}</p>
-                        </div>
-                      </div>
-                      <div className='bottom__cat__box'>
-                        <div className='random_play'>
-                          <button className='btn btn-primary' onClick={() => PlaywithFriend(true)}>
-                            {t('Play With Friend')}
-                          </button>
-                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                : null}
+                  : null
+                }
+                {systemconfig?.battle_mode_one === "1" ?
+                  <div className='col-md-12 col-lg-6 col-12'>
+                    <div className='left_content'>
+                      <div className='left-sec right_content'>
+                        <h3 className=' mb-3 leftSecTite'>{t('play_with_friend')}</h3>
+                        <hr />
+                        <div className='two_header_content d-flex flex-wrap align-items-center mb-3 mt-4'>
+                          <div className='playFrdPara'>
+                            <p>{t("play_frd_para")}</p>
+                          </div>
+                        </div>
+                        <div className='bottom__cat__box'>
+                          <div className='random_play'>
+                            <button className='btn btn-primary' onClick={() => PlaywithFriend(true)}>
+                              {t('play_with_friend')}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  : null}
               </>
             )}
           </div>
@@ -705,7 +726,7 @@ const RandomBattle = () => {
       <Modal
         centered
         maskClosable={false}
-        visible={retrymodal}
+        open={retrymodal}
         onOk={() => setretryModal(false)}
         onCancel={() => {
           onBackScreen()
@@ -718,13 +739,13 @@ const RandomBattle = () => {
           <>
             <div className='nouser d-flex justify-content-center align-items-center flex-column'>
               <h5 className=' text-center'>
-                {t("No opponent detected. Retry or play against the bot.")} <br></br>
+                {t("no_opponent_detected")} <br></br>
               </h5>
               <button className='btn btn-primary mt-2' onClick={() => retryPlaybot()}>
-                {t("Play With bot")}
+                {t("play_with_bot")}
               </button>
               <button className='btn btn-primary mt-2' onClick={() => retryPlay()}>
-                {t('Retry')}
+                {t('retry')}
               </button>
             </div>
           </>
@@ -732,7 +753,7 @@ const RandomBattle = () => {
           ''
         )}
       </Modal>
-    </Layout>
+    </>
   )
 }
 

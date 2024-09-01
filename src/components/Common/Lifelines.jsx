@@ -43,7 +43,7 @@ const Lifelines = ({
     let update
     if (type === 'Fifty Fifty') {
       if (currentquestions.audeincePoll) {
-        toast.error(t('cantUseFiftyFiftyAfterPoll'));
+        toast.error(t('cant_use_fifty_fifty_after_poll'));
         return false;
       }
       if (!status.fifty_fifty) {
@@ -58,7 +58,7 @@ const Lifelines = ({
       }
     } else if (type === 'Audience Poll') {
       if (currentquestions.fiftyUsed) {
-        toast.error(t('cantUsePollAfterFiftyFifty'))
+        toast.error(t('cant_use_poll_after_fifty_fifty'))
         return
       }
       if (!status.audience_poll) {
@@ -96,19 +96,19 @@ const Lifelines = ({
   const deductCoins = () => {
     if (checkIfUserhasCoins()) {
       let coins = '-' + (Number(lifeline_deduct_coin) ? Number(lifeline_deduct_coin) : 0)
-      UserCoinScoreApi(
-        coins,
-        null,
-        null,
-        'Used Hint Lifeline',
-        '1',
-        response => {
+      UserCoinScoreApi({
+        coins: coins,
+        score: null,
+        type: null,
+        title: 'Used Hint Lifeline',
+        status: '1',
+        onSuccess: response => {
           updateUserDataInfo(response.data)
         },
-        error => {
+        onError: error => {
           console.log(error)
         }
-      )
+      })
       return true
     } else {
       return false
@@ -117,7 +117,7 @@ const Lifelines = ({
 
   const checkIfUserhasCoins = () => {
     if (userData?.data?.coins < (Number(lifeline_deduct_coin) ? Number(lifeline_deduct_coin) : 0)) {
-      toast.error(t("You Don't have enough coins"))
+      toast.error(t("no_enough_coins"))
       return false
     } else {
       return true
@@ -133,7 +133,7 @@ const Lifelines = ({
             className={`btn btn-primary fiftybtn py-2 ${status.fifty_fifty && 'bg-secondary'}`}
             onClick={() => lifeLineClick('Fifty Fifty')}
           >
-            50/50
+            <span>50/50</span>
           </button>
         </div>
       ) : (
@@ -150,6 +150,7 @@ const Lifelines = ({
           >
 
             <span className='lifelineIcon'> <TbUsers /></span>
+            <span className='lifelineHoverIcon'>{t("audience_poll")}</span>
           </button>
         </div>
       ) : (
@@ -163,6 +164,7 @@ const Lifelines = ({
         >
 
           <span className='lifelineIcon'><FaRegClock /></span>
+          <span className='lifelineHoverIcon'>{t("reset_time")}</span>
         </button>
       </div>
       {totalQuestions > 1 && (
@@ -172,6 +174,7 @@ const Lifelines = ({
             onClick={() => lifeLineClick('Skip Question')}
           >
             <span className='lifelineIcon'> <RiArrowRightDoubleLine size={25} /></span>
+            <span className='lifelineHoverIcon'>{t("skip_question")}</span>
           </button>
         </div>
       )}

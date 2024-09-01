@@ -98,7 +98,7 @@
     RewriteRule ^loading$ /loading/index.html [L]
     RewriteRule ^index$ /index.html [L]
     RewriteRule ^home$ /home/index.html [L]
-    RewriteRule ^all-games$ /all-games/index.html [L]
+    RewriteRule ^quiz-play$ /quiz-play/index.html [L]
 
     #daily quiz
     RewriteRule ^quiz-play/daily-quiz-dashboard$ /quiz-play/daily-quiz-dashboard/index.html [L]
@@ -111,5 +111,5 @@
    
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ /404.html [L]
+    RewriteRule ^(.*)$ /404/index.html [L]
 </IfModule>
