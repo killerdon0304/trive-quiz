@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://freemcqquiz.vercel.app/sitemap.xml
